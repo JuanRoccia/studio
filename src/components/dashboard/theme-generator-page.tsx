@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -29,13 +29,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Wand2, Lightbulb } from "lucide-react";
+import { Loader2, Wand2, Lightbulb, Search, Info } from "lucide-react";
 import { generateConspiracyThemes } from "@/ai/flows/generate-conspiracy-themes";
 import type { GenerateConspiracyThemesOutput } from "@/ai/flows/generate-conspiracy-themes";
 import { generateSuggestions, type GenerateSuggestionsOutput as SuggestionsOutput } from "@/ai/flows/generate-suggestions";
+import { analyzeTrends, type AnalyzeTrendsOutput } from "@/ai/flows/analyze-trends";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GeneratedThemesList } from "./generated-themes-list";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Badge } from "../ui/badge";
+import { Switch } from "../ui/switch";
+import { Label } from "../ui/label";
 
 const formSchema = z.object({
   currentEvents: z
@@ -59,6 +64,12 @@ export function ThemeGeneratorPage() {
   const [suggestions, setSuggestions] = useState<SuggestionsOutput | null>(null);
   const [loadingSuggestionsFor, setLoadingSuggestionsFor] = useState<"currentEvents" | "keywords" | null>(null);
   const [focusedField, setFocusedField] = useState<"currentEvents" | "keywords" | null>(null);
+  
+  const [trends, setTrends] = useState<AnalyzeTrendsOutput | null>(null);
+  const [loadingTrends, setLoadingTrends] = useState(false);
+  const [alignWithTrends, setAlignWithTrends] = useState(false);
+  
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,12 +80,57 @@ export function ThemeGeneratorPage() {
       platform: "Blog Post",
     },
   });
+  
+  const { watch } = form;
+  const currentEventsValue = watch("currentEvents");
+  const keywordsValue = watch("keywords");
+  
+  useEffect(() => {
+    if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+    }
+    debounceTimeout.current = setTimeout(() => {
+        const topic = `${currentEventsValue} ${keywordsValue}`;
+        if (topic.trim().length > 20) {
+            handleAnalyzeTrends(topic);
+        } else {
+            setTrends(null); // Clear trends if input is too short
+        }
+    }, 1200); // 1.2-second debounce
+
+    return () => {
+        if (debounceTimeout.current) {
+            clearTimeout(debounceTimeout.current);
+        }
+    };
+  }, [currentEventsValue, keywordsValue]);
+
+  const handleAnalyzeTrends = async (topic: string) => {
+    setLoadingTrends(true);
+    setTrends(null);
+    try {
+        const trendResults = await analyzeTrends({ topic });
+        setTrends(trendResults);
+    } catch (error) {
+        console.error("Failed to analyze trends", error);
+        toast({
+            variant: "destructive",
+            title: "Trend Analysis Error",
+            description: "Could not load trend data. Please try again."
+        });
+    } finally {
+        setLoadingTrends(false);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setResult(null);
     try {
-      const themes = await generateConspiracyThemes(values);
+      const themes = await generateConspiracyThemes({
+        ...values,
+        trends: alignWithTrends && trends ? trends.trends : undefined,
+      });
       setResult(themes);
     } catch (error) {
       console.error(error);
@@ -109,7 +165,6 @@ export function ThemeGeneratorPage() {
   };
 
   const handleBlur = () => {
-    // Timeout to allow click on suggestion before it disappears
     setTimeout(() => {
       setFocusedField(null);
     }, 150);
@@ -209,7 +264,35 @@ export function ThemeGeneratorPage() {
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {(loadingTrends || trends) && (
+                <div className="space-y-4 pt-4">
+                    {loadingTrends && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="animate-spin h-4 w-4" />
+                            <span>Analyzing latest social media trends...</span>
+                        </div>
+                    )}
+                    {trends && !loadingTrends && (
+                        <Alert className="border-primary/20">
+                           <Info className="h-4 w-4" />
+                            <AlertTitle className="font-headline">Trend Analysis Complete</AlertTitle>
+                            <AlertDescription className="space-y-3">
+                              <p className="text-foreground/80">{trends.summary}</p>
+                              <div className="flex flex-wrap gap-2">
+                                  {trends.trends.map(t => <Badge key={t} variant="secondary">{t}</Badge>)}
+                              </div>
+                              <div className="flex items-center space-x-2 pt-2">
+                                  <Switch id="align-trends" checked={alignWithTrends} onCheckedChange={setAlignWithTrends} />
+                                  <Label htmlFor="align-trends" className="cursor-pointer">Align generated themes with these trends</Label>
+                              </div>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                 <FormField
                   control={form.control}
                   name="tone"

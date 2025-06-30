@@ -27,6 +27,10 @@ const GenerateConspiracyThemesInputSchema = z.object({
   platform: z
     .enum(['General', 'Blog Post', 'Twitter Thread', 'Video Script'])
     .describe('The target platform or format for the themes.'),
+  trends: z
+    .array(z.string())
+    .optional()
+    .describe('A list of current trends to align the themes with.'),
 });
 
 export type GenerateConspiracyThemesInput = z.infer<
@@ -61,6 +65,13 @@ Current Events: {{{currentEvents}}}
 Keywords: {{{keywords}}}
 Tone: {{{tone}}}
 Target Platform/Format: {{{platform}}}
+
+{{#if trends}}
+You MUST align your suggestions with the following current trends:
+{{#each trends}}
+- {{this}}
+{{/each}}
+{{/if}}
 
 Generate a list of conspiracy theory themes that combine these elements. Each theme should be concise, engaging, and suitable for the specified tone and platform.`,
 });

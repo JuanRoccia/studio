@@ -11,6 +11,7 @@ import {
   BadgeDollarSign,
   User,
   Settings,
+  Send,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -48,6 +49,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const getPageTitle = () => {
     if (pathname.startsWith('/dashboard/theme-generator')) return 'Theme Generator';
     if (pathname.startsWith('/dashboard/content-aligner')) return 'Content Aligner';
+    if (pathname.startsWith('/dashboard/publisher')) return 'Content Publisher';
     if (pathname.startsWith('/dashboard')) return 'Dashboard';
     return 'Veiled Truths';
   };
@@ -90,6 +92,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <Link href="/dashboard/content-aligner">
                       <Share2 />
                       <span>Content Aligner</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Publisher" isActive={isActive('/dashboard/publisher')}>
+                    <Link href="/dashboard/publisher">
+                      <Send />
+                      <span>Publisher</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

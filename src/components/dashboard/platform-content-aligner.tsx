@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -29,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Share2, Copy, Check } from "lucide-react";
+import { Loader2, Share2, Copy, Check, ArrowRight } from "lucide-react";
 import { alignPlatformContent } from "@/ai/flows/align-platform-content";
 import type { AlignPlatformContentOutput } from "@/ai/flows/align-platform-content";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +46,7 @@ const formSchema = z.object({
     .min(10, "Target audience description is too short."),
 });
 
-export function PlatformContentAligner() {
+export function PlatformContentAligner({ showPublisherButton = false }: { showPublisherButton?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AlignPlatformContentOutput | null>(
     null
@@ -181,31 +182,48 @@ export function PlatformContentAligner() {
             </Button>
           </form>
         </Form>
+        
         {result && (
-          <div className="mt-6 space-y-4 bg-secondary/30 p-6 rounded-md">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="font-headline text-lg">Content Suggestion:</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleCopy(result.contentSuggestion)}
-                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                  aria-label="Copy suggestion"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
+          <div className="mt-6 space-y-4">
+            <div className="space-y-4 bg-secondary/30 p-6 rounded-md">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-headline text-lg">Content Suggestion:</h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleCopy(result.contentSuggestion)}
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                    aria-label="Copy suggestion"
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-muted-foreground">{result.contentSuggestion}</p>
+              </div>
+              <div className="space-y-2 pt-2">
+                <h3 className="font-headline text-lg">Reasoning:</h3>
+                <p className="text-muted-foreground">{result.reasoning}</p>
+              </div>
+            </div>
+
+            {showPublisherButton && (
+              <div className="flex justify-end">
+                <Button asChild size="lg">
+                    <Link href={{
+                      pathname: '/dashboard/publisher',
+                      query: { content: result.contentSuggestion, theme: form.getValues('theme') }
+                    }}>
+                        Continue to Publisher
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
                 </Button>
               </div>
-              <p className="text-muted-foreground">{result.contentSuggestion}</p>
-            </div>
-            <div className="space-y-2 pt-2">
-              <h3 className="font-headline text-lg">Reasoning:</h3>
-              <p className="text-muted-foreground">{result.reasoning}</p>
-            </div>
+            )}
           </div>
         )}
       </CardContent>
