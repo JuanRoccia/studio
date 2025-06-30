@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32,7 +32,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Wand2 } from "lucide-react";
 import { generateConspiracyThemes } from "@/ai/flows/generate-conspiracy-themes";
 import type { GenerateConspiracyThemesOutput } from "@/ai/flows/generate-conspiracy-themes";
+import { generateSuggestions, type GenerateSuggestionsOutput as SuggestionsOutput } from "@/ai/flows/generate-suggestions";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
   currentEvents: z
@@ -52,6 +54,24 @@ export function ThemeGeneratorPage() {
   const [result, setResult] =
     useState<GenerateConspiracyThemesOutput | null>(null);
   const { toast } = useToast();
+
+  const [suggestions, setSuggestions] = useState<SuggestionsOutput | null>(null);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [focusedField, setFocusedField] = useState<"currentEvents" | "keywords" | null>(null);
+
+  useEffect(() => {
+    async function fetchSuggestions() {
+      try {
+        const result = await generateSuggestions();
+        setSuggestions(result);
+      } catch (error) {
+        console.error("Failed to fetch suggestions", error);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    }
+    fetchSuggestions();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,6 +102,11 @@ export function ThemeGeneratorPage() {
     }
   }
 
+  const handleSuggestionClick = (field: 'currentEvents' | 'keywords', value: string) => {
+    const currentValue = form.getValues(field);
+    form.setValue(field, currentValue ? `${currentValue}, ${value}` : value, { shouldValidate: true });
+  };
+
   return (
     <div className="flex flex-col gap-8">
       <Card className="shadow-lg shadow-primary/10">
@@ -108,8 +133,27 @@ export function ThemeGeneratorPage() {
                         placeholder="e.g., Recent unexplained global phenomena, political shifts, new scientific discoveries..."
                         {...field}
                         rows={5}
+                        onFocus={() => setFocusedField('currentEvents')}
+                        onBlur={() => setTimeout(() => setFocusedField(null), 150)}
                       />
                     </FormControl>
+                     {focusedField === 'currentEvents' && (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          <span className="text-sm text-muted-foreground self-center">Suggestions:</span>
+                          {suggestionsLoading ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-md" />) :
+                           suggestions?.currentEvents?.map((suggestion, index) => (
+                            <Button
+                              key={index}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSuggestionClick('currentEvents', suggestion)}
+                            >
+                              {suggestion}
+                            </Button>
+                          ))}
+                        </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -121,8 +165,30 @@ export function ThemeGeneratorPage() {
                   <FormItem>
                     <FormLabel>Keywords</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., aliens, secret societies, ancient technology, simulation theory" {...field} />
+                      <Input 
+                        placeholder="e.g., aliens, secret societies, ancient technology, simulation theory" 
+                        {...field} 
+                        onFocus={() => setFocusedField('keywords')}
+                        onBlur={() => setTimeout(() => setFocusedField(null), 150)}
+                      />
                     </FormControl>
+                    {focusedField === 'keywords' && (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                           <span className="text-sm text-muted-foreground self-center">Suggestions:</span>
+                          {suggestionsLoading ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-md" />) :
+                           suggestions?.keywords?.map((suggestion, index) => (
+                            <Button
+                              key={index}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSuggestionClick('keywords', suggestion)}
+                            >
+                              {suggestion}
+                            </Button>
+                          ))}
+                        </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
