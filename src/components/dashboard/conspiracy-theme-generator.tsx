@@ -56,7 +56,11 @@ export function ConspiracyThemeGenerator() {
     setLoading(true);
     setResult(null);
     try {
-      const themes = await generateConspiracyThemes(values);
+      const themes = await generateConspiracyThemes({
+        ...values,
+        tone: "Investigative",
+        platform: "General",
+      });
       setResult(themes);
     } catch (error) {
       console.error(error);
