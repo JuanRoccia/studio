@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Wand2 } from "lucide-react";
+import { Loader2, Wand2, Lightbulb } from "lucide-react";
 import { generateConspiracyThemes } from "@/ai/flows/generate-conspiracy-themes";
 import type { GenerateConspiracyThemesOutput } from "@/ai/flows/generate-conspiracy-themes";
 import { generateSuggestions, type GenerateSuggestionsOutput as SuggestionsOutput } from "@/ai/flows/generate-suggestions";
@@ -56,22 +56,8 @@ export function ThemeGeneratorPage() {
   const { toast } = useToast();
 
   const [suggestions, setSuggestions] = useState<SuggestionsOutput | null>(null);
-  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [loadingSuggestionsFor, setLoadingSuggestionsFor] = useState<"currentEvents" | "keywords" | null>(null);
   const [focusedField, setFocusedField] = useState<"currentEvents" | "keywords" | null>(null);
-
-  useEffect(() => {
-    async function fetchSuggestions() {
-      try {
-        const result = await generateSuggestions();
-        setSuggestions(result);
-      } catch (error) {
-        console.error("Failed to fetch suggestions", error);
-      } finally {
-        setSuggestionsLoading(false);
-      }
-    }
-    fetchSuggestions();
-  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -101,10 +87,37 @@ export function ThemeGeneratorPage() {
       setLoading(false);
     }
   }
+  
+  const handleFocus = async (field: "currentEvents" | "keywords") => {
+    setFocusedField(field);
+    setLoadingSuggestionsFor(field);
+    setSuggestions(null); // Clear old suggestions
+    try {
+      const result = await generateSuggestions();
+      setSuggestions(result);
+    } catch (error) {
+      console.error(`Failed to fetch suggestions for ${field}`, error);
+      toast({
+        variant: "destructive",
+        title: "Suggestion Error",
+        description: "Could not load AI suggestions. Please try again."
+      });
+    } finally {
+      setLoadingSuggestionsFor(null);
+    }
+  };
+
+  const handleBlur = () => {
+    // Timeout to allow click on suggestion before it disappears
+    setTimeout(() => {
+      setFocusedField(null);
+    }, 150);
+  };
 
   const handleSuggestionClick = (field: 'currentEvents' | 'keywords', value: string) => {
     const currentValue = form.getValues(field);
     form.setValue(field, currentValue ? `${currentValue}, ${value}` : value, { shouldValidate: true });
+    setFocusedField(null);
   };
 
   return (
@@ -133,22 +146,23 @@ export function ThemeGeneratorPage() {
                         placeholder="e.g., Recent unexplained global phenomena, political shifts, new scientific discoveries..."
                         {...field}
                         rows={5}
-                        onFocus={() => setFocusedField('currentEvents')}
-                        onBlur={() => setTimeout(() => setFocusedField(null), 150)}
+                        onFocus={() => handleFocus('currentEvents')}
+                        onBlur={handleBlur}
                       />
                     </FormControl>
                      {focusedField === 'currentEvents' && (
                         <div className="flex flex-wrap gap-2 pt-2">
-                          <span className="text-sm text-muted-foreground self-center">Suggestions:</span>
-                          {suggestionsLoading ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-md" />) :
+                          {loadingSuggestionsFor === 'currentEvents' ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-9 w-40 rounded-md" />) :
                            suggestions?.currentEvents?.map((suggestion, index) => (
                             <Button
                               key={index}
                               type="button"
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleSuggestionClick('currentEvents', suggestion)}
+                              className="text-muted-foreground hover:text-accent-foreground justify-start"
                             >
+                              <Lightbulb className="mr-2 h-4 w-4" />
                               {suggestion}
                             </Button>
                           ))}
@@ -168,22 +182,23 @@ export function ThemeGeneratorPage() {
                       <Input 
                         placeholder="e.g., aliens, secret societies, ancient technology, simulation theory" 
                         {...field} 
-                        onFocus={() => setFocusedField('keywords')}
-                        onBlur={() => setTimeout(() => setFocusedField(null), 150)}
+                        onFocus={() => handleFocus('keywords')}
+                        onBlur={handleBlur}
                       />
                     </FormControl>
                     {focusedField === 'keywords' && (
                         <div className="flex flex-wrap gap-2 pt-2">
-                           <span className="text-sm text-muted-foreground self-center">Suggestions:</span>
-                          {suggestionsLoading ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-md" />) :
+                          {loadingSuggestionsFor === 'keywords' ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-9 w-40 rounded-md" />) :
                            suggestions?.keywords?.map((suggestion, index) => (
                             <Button
                               key={index}
                               type="button"
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleSuggestionClick('keywords', suggestion)}
+                              className="text-muted-foreground hover:text-accent-foreground justify-start"
                             >
+                              <Lightbulb className="mr-2 h-4 w-4" />
                               {suggestion}
                             </Button>
                           ))}

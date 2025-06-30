@@ -14,11 +14,11 @@ const GenerateSuggestionsOutputSchema = z.object({
   currentEvents: z
     .array(z.string())
     .describe(
-      'A list of 3-5 intriguing and mysterious current event or topic suggestions.'
+      'A list of 2-3 intriguing and mysterious current event or topic suggestions.'
     ),
   keywords: z
     .array(z.string())
-    .describe('A list of 3-5 relevant keyword suggestions.'),
+    .describe('A list of 2-3 relevant keyword suggestions.'),
 });
 
 export type GenerateSuggestionsOutput = z.infer<
@@ -34,8 +34,8 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateSuggestionsOutputSchema},
   prompt: `You are an AI assistant for a conspiracy theory content creator. Your task is to brainstorm some starting points.
 
-  Generate a list of 3-5 intriguing and mysterious current event or topic suggestions that could be spun into a conspiracy.
-  Also, generate a list of 3-5 relevant keywords that are popular in this niche.
+  Generate a list of 2-3 intriguing and mysterious current event or topic suggestions that could be spun into a conspiracy.
+  Also, generate a list of 2-3 relevant keywords that are popular in this niche.
 
   Present the output in the requested JSON format. Do not include any introductory text.`,
 });
