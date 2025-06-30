@@ -35,6 +35,7 @@ import type { GenerateConspiracyThemesOutput } from "@/ai/flows/generate-conspir
 import { generateSuggestions, type GenerateSuggestionsOutput as SuggestionsOutput } from "@/ai/flows/generate-suggestions";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GeneratedThemesList } from "./generated-themes-list";
 
 const formSchema = z.object({
   currentEvents: z
@@ -290,11 +291,7 @@ export function ThemeGeneratorPage() {
             <CardTitle className="font-headline">Generated Themes</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="list-disc list-inside space-y-3 bg-secondary/30 p-6 rounded-md">
-              {result.themes.map((theme, index) => (
-                <li key={index} className="text-foreground/90">{theme}</li>
-              ))}
-            </ul>
+            <GeneratedThemesList themes={result.themes} showAlignerButton={true} />
           </CardContent>
         </Card>
       )}

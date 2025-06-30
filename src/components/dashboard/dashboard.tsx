@@ -13,11 +13,8 @@ export function Dashboard() {
       <div className="col-span-12">
         <PerformanceDashboard />
       </div>
-      <div className="col-span-12 lg:col-span-7">
+      <div className="col-span-12">
         <ConspiracyThemeGenerator />
-      </div>
-       <div className="col-span-12 lg:col-span-5">
-        <PlatformContentAligner />
       </div>
       <div className="col-span-12 lg:col-span-6 xl:col-span-5">
          <TaskScheduler />

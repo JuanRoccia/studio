@@ -26,6 +26,7 @@ import { Loader2, Wand2 } from "lucide-react";
 import { generateConspiracyThemes } from "@/ai/flows/generate-conspiracy-themes";
 import type { GenerateConspiracyThemesOutput } from "@/ai/flows/generate-conspiracy-themes";
 import { useToast } from "@/hooks/use-toast";
+import { GeneratedThemesList } from "./generated-themes-list";
 
 const formSchema = z.object({
   currentEvents: z
@@ -135,13 +136,9 @@ export function ConspiracyThemeGenerator() {
           </form>
         </Form>
         {result && (
-          <div className="mt-6">
+           <div className="mt-6">
             <h3 className="font-headline text-xl mb-4">Generated Themes:</h3>
-            <ul className="list-disc list-inside space-y-2 bg-secondary/30 p-4 rounded-md">
-              {result.themes.map((theme, index) => (
-                <li key={index}>{theme}</li>
-              ))}
-            </ul>
+            <GeneratedThemesList themes={result.themes} />
           </div>
         )}
       </CardContent>

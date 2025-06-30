@@ -47,6 +47,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
   const getPageTitle = () => {
     if (pathname.startsWith('/dashboard/theme-generator')) return 'Theme Generator';
+    if (pathname.startsWith('/dashboard/content-aligner')) return 'Content Aligner';
     if (pathname.startsWith('/dashboard')) return 'Dashboard';
     return 'Veiled Truths';
   };
@@ -85,9 +86,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Content Aligner">
-                    <Share2 />
-                    <span>Content Aligner</span>
+                  <SidebarMenuButton asChild tooltip="Content Aligner" isActive={isActive('/dashboard/content-aligner')}>
+                    <Link href="/dashboard/content-aligner">
+                      <Share2 />
+                      <span>Content Aligner</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarGroup>

@@ -81,7 +81,7 @@ export function PlatformContentAligner() {
   }
 
   return (
-    <Card className="shadow-lg shadow-primary/10">
+    <Card className="shadow-lg shadow-primary/10 w-full">
       <CardHeader>
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
           <Share2 className="w-6 h-6 text-primary" />
