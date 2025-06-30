@@ -21,6 +21,12 @@ const GenerateConspiracyThemesInputSchema = z.object({
     .describe(
       'User-defined keywords to tailor the conspiracy themes to specific interests.'
     ),
+  tone: z
+    .enum(['Serious', 'Satirical', 'Investigative', 'Sensationalist'])
+    .describe('The desired tone for the generated themes.'),
+  platform: z
+    .enum(['General', 'Blog Post', 'Twitter Thread', 'Video Script'])
+    .describe('The target platform or format for the themes.'),
 });
 
 export type GenerateConspiracyThemesInput = z.infer<
@@ -53,8 +59,10 @@ const prompt = ai.definePrompt({
 
 Current Events: {{{currentEvents}}}
 Keywords: {{{keywords}}}
+Tone: {{{tone}}}
+Target Platform/Format: {{{platform}}}
 
-Generate a list of conspiracy theory themes that combine these elements. Each theme should be concise and engaging.`,
+Generate a list of conspiracy theory themes that combine these elements. Each theme should be concise, engaging, and suitable for the specified tone and platform.`,
 });
 
 const generateConspiracyThemesFlow = ai.defineFlow(

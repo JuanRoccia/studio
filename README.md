@@ -15,6 +15,26 @@ Como pieza clave en mi portfolio, "Veiled Truths" demuestra mi capacidad para co
 
 ## Tecnologías Utilizadas
 
+## Próxima Función Planeada: Análisis Profundo de Nichos y Audiencias
+
+Como parte de la evolución de "Veiled Truths", se está planificando la incorporación de una potente funcionalidad de **análisis profundo de nichos y identificación de audiencias**. Esta característica permitirá:
+
+1.  **Análisis Temático del Nicho:** Realizar un escrutinio detallado de los temas clave dentro del nicho de mercado objetivo, identificando tendencias, palabras clave relevantes y conversaciones predominantes.
+2.  **Identificación de Audiencia:** Localizar dónde se encuentra la audiencia objetivo, tanto geográficamente como en las plataformas online donde interactúan (redes sociales, foros, blogs, etc.).
+3.  **Definición de Buyer Personas:** Construir perfiles detallados de los clientes ideales (buyer personas) basándose en el análisis de datos de comportamiento de consumo, intereses y características demográficas. Este proceso se nutrirá de la **combinación de scraping automatizado de datos de redes sociales y la entrada manual de información** proveniente de perfiles sugeridos y conversaciones relevantes.
+4.  **Predicción de Comportamiento:** Utilizar modelos de IA para predecir el comportamiento de consumo de los buyer personas identificados, optimizando así la estrategia de contenido y la segmentación de audiencias.
+5.  **Visualización Profesional:** Presentar los hallazgos de manera clara y concisa a través de **resúmenes pulidos y gráficos intuitivos**, facilitando la comprensión del perfil del cliente ideal y la toma de decisiones estratégicas.
+
+Esta funcionalidad busca ofrecer un enfoque **altamente profesional y basado en datos** para la identificación del **Ideal Customer Profile (ICP)**, asegurando que la generación de contenido esté alineada con las necesidades y preferencias de la audiencia más relevante para cada negocio.
+
+---
+
+Este proyecto, "Veiled Truths", es una plataforma web desarrollada con Next.js que actúa como un **dashboard personalizable para la generación de contenido impulsado por inteligencia artificial**. Inicialmente concebido para un cliente específico con el fin de potenciar su estrategia de marketing digital, esta aplicación ha sido diseñada con la flexibilidad en mente, sirviendo ahora como un **template robusto y adaptable para la creación de soluciones de contenido a medida para una amplia gama de nichos de mercado**.
+
+Como pieza clave en mi portfolio, "Veiled Truths" demuestra mi capacidad para construir herramientas digitales que **impulsan el engagement, aumentan el tráfico y, en última instancia, potencian las ventas** mediante la creación estratégica de contenido dirigido a audiencias específicas.
+
+## Características Principales
+
 *   **Framework:** Next.js (React)
 *   **Lenguaje:** TypeScript
 *   **Estilos:** Tailwind CSS, PostCSS
