@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Share2 } from "lucide-react";
+import { Loader2, Share2, Copy, Check } from "lucide-react";
 import { alignPlatformContent } from "@/ai/flows/align-platform-content";
 import type { AlignPlatformContentOutput } from "@/ai/flows/align-platform-content";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +50,7 @@ export function PlatformContentAligner() {
   const [result, setResult] = useState<AlignPlatformContentOutput | null>(
     null
   );
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,10 +62,29 @@ export function PlatformContentAligner() {
       targetAudience: "Skeptics and truth-seekers interested in hidden knowledge.",
     },
   });
+  
+  const handleCopy = (text: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      toast({
+        title: "Suggestion copied to clipboard",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(err => {
+      console.error("Failed to copy: ", err);
+      toast({
+        variant: "destructive",
+        title: "Failed to copy",
+        description: "Could not copy suggestion to clipboard.",
+      });
+    });
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setResult(null);
+    setCopied(false);
     try {
       const suggestion = await alignPlatformContent(values);
       setResult(suggestion);
@@ -162,12 +182,27 @@ export function PlatformContentAligner() {
           </form>
         </Form>
         {result && (
-          <div className="mt-6 space-y-4 bg-secondary/30 p-4 rounded-md">
-            <div>
-              <h3 className="font-headline text-lg">Content Suggestion:</h3>
+          <div className="mt-6 space-y-4 bg-secondary/30 p-6 rounded-md">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-headline text-lg">Content Suggestion:</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleCopy(result.contentSuggestion)}
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                  aria-label="Copy suggestion"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
               <p className="text-muted-foreground">{result.contentSuggestion}</p>
             </div>
-            <div>
+            <div className="space-y-2 pt-2">
               <h3 className="font-headline text-lg">Reasoning:</h3>
               <p className="text-muted-foreground">{result.reasoning}</p>
             </div>
