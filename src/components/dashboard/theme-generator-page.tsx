@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -29,10 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Wand2, Lightbulb, Search, Info } from "lucide-react";
+import { Loader2, Wand2, Search, Info, Plus } from "lucide-react";
 import { generateConspiracyThemes } from "@/ai/flows/generate-conspiracy-themes";
 import type { GenerateConspiracyThemesOutput } from "@/ai/flows/generate-conspiracy-themes";
-import { generateSuggestions, type GenerateSuggestionsOutput as SuggestionsOutput } from "@/ai/flows/generate-suggestions";
 import { analyzeTrends, type AnalyzeTrendsOutput } from "@/ai/flows/analyze-trends";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,15 +60,9 @@ export function ThemeGeneratorPage() {
     useState<GenerateConspiracyThemesOutput | null>(null);
   const { toast } = useToast();
 
-  const [suggestions, setSuggestions] = useState<SuggestionsOutput | null>(null);
-  const [loadingSuggestionsFor, setLoadingSuggestionsFor] = useState<"currentEvents" | "keywords" | null>(null);
-  const [focusedField, setFocusedField] = useState<"currentEvents" | "keywords" | null>(null);
-  
   const [trends, setTrends] = useState<AnalyzeTrendsOutput | null>(null);
   const [loadingTrends, setLoadingTrends] = useState(false);
-  const [alignWithTrends, setAlignWithTrends] = useState(false);
-  
-  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [alignWithTrends, setAlignWithTrends] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,36 +73,12 @@ export function ThemeGeneratorPage() {
       platform: "Blog Post",
     },
   });
-  
-  const { watch } = form;
-  const currentEventsValue = watch("currentEvents");
-  const keywordsValue = watch("keywords");
-  
-  useEffect(() => {
-    if (debounceTimeout.current) {
-        clearTimeout(debounceTimeout.current);
-    }
-    debounceTimeout.current = setTimeout(() => {
-        const topic = `${currentEventsValue} ${keywordsValue}`;
-        if (topic.trim().length > 20) {
-            handleAnalyzeTrends(topic);
-        } else {
-            setTrends(null); // Clear trends if input is too short
-        }
-    }, 1200); // 1.2-second debounce
 
-    return () => {
-        if (debounceTimeout.current) {
-            clearTimeout(debounceTimeout.current);
-        }
-    };
-  }, [currentEventsValue, keywordsValue]);
-
-  const handleAnalyzeTrends = async (topic: string) => {
+  const handleAnalyzeTrends = async () => {
     setLoadingTrends(true);
     setTrends(null);
     try {
-        const trendResults = await analyzeTrends({ topic });
+        const trendResults = await analyzeTrends();
         setTrends(trendResults);
     } catch (error) {
         console.error("Failed to analyze trends", error);
@@ -144,36 +113,10 @@ export function ThemeGeneratorPage() {
       setLoading(false);
     }
   }
-  
-  const handleFocus = async (field: "currentEvents" | "keywords") => {
-    setFocusedField(field);
-    setLoadingSuggestionsFor(field);
-    setSuggestions(null); // Clear old suggestions
-    try {
-      const result = await generateSuggestions();
-      setSuggestions(result);
-    } catch (error) {
-      console.error(`Failed to fetch suggestions for ${field}`, error);
-      toast({
-        variant: "destructive",
-        title: "Suggestion Error",
-        description: "Could not load AI suggestions. Please try again."
-      });
-    } finally {
-      setLoadingSuggestionsFor(null);
-    }
-  };
-
-  const handleBlur = () => {
-    setTimeout(() => {
-      setFocusedField(null);
-    }, 150);
-  };
 
   const handleSuggestionClick = (field: 'currentEvents' | 'keywords', value: string) => {
     const currentValue = form.getValues(field);
     form.setValue(field, currentValue ? `${currentValue}, ${value}` : value, { shouldValidate: true });
-    setFocusedField(null);
   };
 
   return (
@@ -189,6 +132,68 @@ export function ThemeGeneratorPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-6 rounded-lg border border-dashed p-4 text-center flex flex-col items-center">
+            <h3 className="font-headline text-lg">Need Inspiration?</h3>
+            <p className="text-muted-foreground text-sm mb-3 max-w-md">
+                Analyze the latest social media trends to get AI-powered suggestions for topics and keywords.
+            </p>
+            <Button onClick={() => handleAnalyzeTrends()} disabled={loadingTrends}>
+                {loadingTrends ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                Analyze Latest Trends
+            </Button>
+          </div>
+
+          {loadingTrends && (
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  <span>Analyzing latest social media trends...</span>
+              </div>
+              <Skeleton className="h-40 w-full" />
+            </div>
+          )}
+          {trends && !loadingTrends && (
+              <div className="mb-6">
+                  <Alert className="border-primary/20">
+                     <Info className="h-4 w-4" />
+                      <AlertTitle className="font-headline">Trend Analysis Complete</AlertTitle>
+                      <AlertDescription className="space-y-4 pt-2">
+                        <p className="text-foreground/80">{trends.summary}</p>
+                        
+                        <div className="space-y-2">
+                          <Label>Suggested Topics (click to use):</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {trends.suggestedTopics.map((topic, i) => (
+                              <Button key={i} type="button" variant="outline" size="sm" onClick={() => handleSuggestionClick('currentEvents', topic)}>
+                                <Plus className="mr-2 h-4 w-4" /> {topic}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Suggested Keywords (click to use):</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {trends.suggestedKeywords.map((keyword, i) => (
+                              <Button key={i} type="button" variant="outline" size="sm" onClick={() => handleSuggestionClick('keywords', keyword)}>
+                                <Plus className="mr-2 h-4 w-4" /> {keyword}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Switch id="align-trends" checked={alignWithTrends} onCheckedChange={setAlignWithTrends} />
+                            <Label htmlFor="align-trends" className="cursor-pointer text-sm">Align generated themes with related trends</Label>
+                        </div>
+                         {alignWithTrends && <div className="flex flex-wrap gap-2">
+                            {trends.trends.map(t => <Badge key={t} variant="secondary">{t}</Badge>)}
+                        </div>}
+                      </AlertDescription>
+                  </Alert>
+              </div>
+            )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -202,28 +207,8 @@ export function ThemeGeneratorPage() {
                         placeholder="e.g., Recent unexplained global phenomena, political shifts, new scientific discoveries..."
                         {...field}
                         rows={5}
-                        onFocus={() => handleFocus('currentEvents')}
-                        onBlur={handleBlur}
                       />
                     </FormControl>
-                     {focusedField === 'currentEvents' && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          {loadingSuggestionsFor === 'currentEvents' ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-9 w-40 rounded-md" />) :
-                           suggestions?.currentEvents?.map((suggestion, index) => (
-                            <Button
-                              key={index}
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSuggestionClick('currentEvents', suggestion)}
-                              className="text-muted-foreground hover:text-accent-foreground justify-start"
-                            >
-                              <Lightbulb className="mr-2 h-4 w-4" />
-                              {suggestion}
-                            </Button>
-                          ))}
-                        </div>
-                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -238,59 +223,12 @@ export function ThemeGeneratorPage() {
                       <Input 
                         placeholder="e.g., aliens, secret societies, ancient technology, simulation theory" 
                         {...field} 
-                        onFocus={() => handleFocus('keywords')}
-                        onBlur={handleBlur}
                       />
                     </FormControl>
-                    {focusedField === 'keywords' && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          {loadingSuggestionsFor === 'keywords' ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-9 w-40 rounded-md" />) :
-                           suggestions?.keywords?.map((suggestion, index) => (
-                            <Button
-                              key={index}
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSuggestionClick('keywords', suggestion)}
-                              className="text-muted-foreground hover:text-accent-foreground justify-start"
-                            >
-                              <Lightbulb className="mr-2 h-4 w-4" />
-                              {suggestion}
-                            </Button>
-                          ))}
-                        </div>
-                    )}
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {(loadingTrends || trends) && (
-                <div className="space-y-4 pt-4">
-                    {loadingTrends && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="animate-spin h-4 w-4" />
-                            <span>Analyzing latest social media trends...</span>
-                        </div>
-                    )}
-                    {trends && !loadingTrends && (
-                        <Alert className="border-primary/20">
-                           <Info className="h-4 w-4" />
-                            <AlertTitle className="font-headline">Trend Analysis Complete</AlertTitle>
-                            <AlertDescription className="space-y-3">
-                              <p className="text-foreground/80">{trends.summary}</p>
-                              <div className="flex flex-wrap gap-2">
-                                  {trends.trends.map(t => <Badge key={t} variant="secondary">{t}</Badge>)}
-                              </div>
-                              <div className="flex items-center space-x-2 pt-2">
-                                  <Switch id="align-trends" checked={alignWithTrends} onCheckedChange={setAlignWithTrends} />
-                                  <Label htmlFor="align-trends" className="cursor-pointer">Align generated themes with these trends</Label>
-                              </div>
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </div>
-              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                 <FormField
@@ -361,11 +299,15 @@ export function ThemeGeneratorPage() {
         </CardContent>
       </Card>
 
-      {loading && (
-        <div className="flex items-center justify-center p-8 rounded-lg border bg-card">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">The AI is uncovering hidden truths...</p>
-        </div>
+      {loading && !result &&(
+        <Card className="shadow-lg shadow-primary/10">
+            <CardContent className="pt-6">
+                <div className="flex items-center justify-center p-8 rounded-lg border-dashed border-2 bg-card">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-4 text-muted-foreground">The AI is uncovering hidden truths...</p>
+                </div>
+            </CardContent>
+        </Card>
       )}
 
       {result && (
