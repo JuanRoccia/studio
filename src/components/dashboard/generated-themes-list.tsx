@@ -37,7 +37,7 @@ export function GeneratedThemesList({ themes, showAlignerButton = false }: Gener
       <ul className="list-none space-y-3 bg-secondary/30 p-6 rounded-md">
         {themes.map((theme, index) => (
           <li key={index} className="flex items-start sm:items-center justify-between gap-4 text-foreground/90 flex-col sm:flex-row">
-            <span className="flex-1">{theme}</span>
+            <span className="flex-1 break-words">{theme}</span>
             <Button
               variant="ghost"
               size="icon"

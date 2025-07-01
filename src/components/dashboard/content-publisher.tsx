@@ -132,9 +132,9 @@ export function ContentPublisher() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button onClick={handleCheckTrends} disabled={isCheckingTrends || !initialTheme} className="w-full">
+            <Button onClick={handleCheckTrends} disabled={isCheckingTrends || !initialTheme} className="w-full justify-start text-left">
                 {isCheckingTrends ? <Loader2 className="animate-spin" /> : <Wand2 />}
-                Check Trends for "{initialTheme || 'Topic'}"
+                <span className="truncate">Check Trends for "{initialTheme || 'Topic'}"</span>
             </Button>
             {trends.length > 0 && (
                 <div className="space-y-2">

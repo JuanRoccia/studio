@@ -86,9 +86,9 @@ export function TaskScheduler() {
                     <Icon className="w-6 h-6 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground mt-1">{task.time}</span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-semibold">{task.title}</h4>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center gap-2">
+                      <h4 className="font-semibold break-words">{task.title}</h4>
                       <Badge variant={task.status === 'Completed' ? 'secondary' : 'default'} className={task.status === 'Completed' ? 'bg-green-700/50 text-green-300 border-none' : 'bg-primary/80'}>
                         {task.status}
                       </Badge>
