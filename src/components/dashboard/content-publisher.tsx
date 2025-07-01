@@ -12,7 +12,8 @@ import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { expandToThread, narrativeStages, type ExpandToThreadInput } from '@/ai/flows/expand-to-thread';
+import { expandToThread, type ExpandToThreadInput } from '@/ai/flows/expand-to-thread';
+import { narrativeStages } from '@/ai/narrative-stages';
 
 export function ContentPublisher() {
   const searchParams = useSearchParams();

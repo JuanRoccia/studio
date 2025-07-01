@@ -10,19 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-
-export const narrativeStages = [
-  'Intro',
-  'Planteamiento detonante',
-  'Tensión',
-  'Punto de giro',
-  'Desarrollo',
-  'Segundo punto de inflexión',
-  'Crisis',
-  'Climax',
-  'Desenlace y resolución',
-] as const;
-
+import { narrativeStages } from '@/ai/narrative-stages';
 
 const ExpandToThreadInputSchema = z.object({
   initialContent: z.string().describe('The starting text or theme for the thread.'),
