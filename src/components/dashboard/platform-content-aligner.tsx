@@ -46,7 +46,7 @@ const formSchema = z.object({
     .min(10, "Target audience description is too short."),
 });
 
-export function PlatformContentAligner({ dict, sharedDict, showPublisherButton = false }: { dict: any, sharedDict: any, showPublisherButton?: boolean }) {
+export function PlatformContentAligner({ lang, dict, sharedDict, showPublisherButton = false }: { lang: string, dict: any, sharedDict: any, showPublisherButton?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AlignPlatformContentOutput | null>(
     null
@@ -87,7 +87,7 @@ export function PlatformContentAligner({ dict, sharedDict, showPublisherButton =
     setResult(null);
     setCopied(false);
     try {
-      const suggestion = await alignPlatformContent(values);
+      const suggestion = await alignPlatformContent({...values, language: lang as 'en' | 'es-AR'});
       setResult(suggestion);
     } catch (error) {
       console.error(error);
@@ -215,7 +215,7 @@ export function PlatformContentAligner({ dict, sharedDict, showPublisherButton =
               <div className="flex justify-end">
                 <Button asChild size="lg">
                     <Link href={{
-                      pathname: '/dashboard/publisher',
+                      pathname: `/${lang}/dashboard/publisher`,
                       query: { content: result.contentSuggestion, theme: form.getValues('theme') }
                     }}>
                         {dict.results.continueButton}

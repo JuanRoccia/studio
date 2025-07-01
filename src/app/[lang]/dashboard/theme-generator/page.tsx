@@ -3,5 +3,5 @@ import { getDictionary } from '@/lib/dictionaries';
 
 export default async function ThemeGenerator({ params: { lang } }: { params: { lang: string } }) {
   const dict = await getDictionary(lang);
-  return <ThemeGeneratorPage dict={dict} />;
+  return <ThemeGeneratorPage lang={lang} dict={dict} />;
 }

@@ -3,5 +3,5 @@ import { getDictionary } from '@/lib/dictionaries';
 
 export default async function ContentAlignerPage({ params: { lang } }: { params: { lang: string } }) {
   const dict = await getDictionary(lang);
-  return <PlatformContentAligner dict={dict.contentAlignerPage} sharedDict={dict.shared} showPublisherButton={true} />;
+  return <PlatformContentAligner lang={lang} dict={dict.contentAlignerPage} sharedDict={dict.shared} showPublisherButton={true} />;
 }

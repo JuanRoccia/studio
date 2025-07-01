@@ -31,6 +31,7 @@ const GenerateConspiracyThemesInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('A list of current trends to align the themes with.'),
+  language: z.enum(['en', 'es-AR']).default('en').describe("The language for the generated content. 'es-AR' is Argentinian Spanish."),
 });
 
 export type GenerateConspiracyThemesInput = z.infer<
@@ -59,7 +60,9 @@ const prompt = ai.definePrompt({
   name: 'generateConspiracyThemesPrompt',
   input: {schema: GenerateConspiracyThemesInputSchema},
   output: {schema: GenerateConspiracyThemesOutputSchema},
-  prompt: `You are a creative conspiracy theory generator. Generate a list of conspiracy theory themes based on the current events and keywords provided.
+  prompt: `You are a creative conspiracy theory generator. All your output MUST be in the language specified by the 'language' code: {{{language}}}.
+
+Generate a list of conspiracy theory themes based on the current events and keywords provided.
 
 Current Events: {{{currentEvents}}}
 Keywords: {{{keywords}}}

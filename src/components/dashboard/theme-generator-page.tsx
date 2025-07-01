@@ -40,6 +40,7 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Badge } from "../ui/badge";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
+import Link from "next/link";
 
 const formSchema = z.object({
   currentEvents: z
@@ -54,7 +55,7 @@ const formSchema = z.object({
   platform: z.enum(['General', 'Blog Post', 'Twitter Thread', 'Video Script']),
 });
 
-export function ThemeGeneratorPage({ dict }: { dict: any }) {
+export function ThemeGeneratorPage({ lang, dict }: { lang: string, dict: any }) {
   const pageDict = dict.themeGenerator;
   const sharedDict = dict.shared;
 
@@ -81,14 +82,14 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
     setLoadingTrends(true);
     setTrends(null);
     try {
-        const trendResults = await analyzeTrends();
+        const trendResults = await analyzeTrends({ language: lang as 'en' | 'es-AR' });
         setTrends(trendResults);
     } catch (error) {
         console.error("Failed to analyze trends", error);
         toast({
             variant: "destructive",
-            title: "Trend Analysis Error",
-            description: "Could not load trend data. Please try again."
+            title: pageDict.trendAnalysis.errorTitle,
+            description: pageDict.trendAnalysis.errorDescription
         });
     } finally {
         setLoadingTrends(false);
@@ -102,6 +103,7 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
       const themes = await generateConspiracyThemes({
         ...values,
         trends: alignWithTrends && trends ? trends.trends : undefined,
+        language: lang as 'en' | 'es-AR',
       });
       setResult(themes);
     } catch (error) {
@@ -334,7 +336,7 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
             <CardTitle className="font-headline">{pageDict.results.title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <GeneratedThemesList themes={result.themes} showAlignerButton={true} dict={sharedDict.generatedThemesList} />
+            <GeneratedThemesList themes={result.themes} lang={lang} showAlignerButton={true} dict={sharedDict.generatedThemesList} />
           </CardContent>
         </Card>
       )}

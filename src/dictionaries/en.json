@@ -51,7 +51,9 @@
             "title": "Trend Analysis Complete",
             "suggestedTopics": "Suggested Topics (click to use):",
             "suggestedKeywords": "Suggested Keywords (click to use):",
-            "alignSwitch": "Align generated themes with related trends"
+            "alignSwitch": "Align generated themes with related trends",
+            "errorTitle": "Trend Analysis Error",
+            "errorDescription": "Could not load trend data. Please try again."
         },
         "form": {
             "currentEventsLabel": "Current Events or Topics",
@@ -167,7 +169,9 @@
             "title": "Trend Analysis",
             "buttonText": "Check Trends for \"{topic}\"",
             "buttonDefaultText": "Topic",
-            "relatedHashtags": "Related Hashtags:"
+            "relatedHashtags": "Related Hashtags:",
+            "errorTitle": "Trend Analysis Failed",
+            "errorDescription": "Could not fetch trends for this topic."
         },
         "publish": {
             "title": "Publish",

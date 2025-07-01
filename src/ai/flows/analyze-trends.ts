@@ -18,6 +18,7 @@ const AnalyzeTrendsInputSchema = z.object({
     .describe(
       'The topic or keywords to analyze for trends. If not provided, analyze general trends in the conspiracy niche.'
     ),
+  language: z.enum(['en', 'es-AR']).default('en').describe("The language for the generated content. 'es-AR' is Argentinian Spanish."),
 });
 export type AnalyzeTrendsInput = z.infer<typeof AnalyzeTrendsInputSchema>;
 
@@ -42,7 +43,7 @@ const AnalyzeTrendsOutputSchema = z.object({
 export type AnalyzeTrendsOutput = z.infer<typeof AnalyzeTrendsOutputSchema>;
 
 export async function analyzeTrends(
-  input?: AnalyzeTrendsInput
+  input: AnalyzeTrendsInput
 ): Promise<AnalyzeTrendsOutput> {
   return analyzeTrendsFlow(input || {});
 }
@@ -52,6 +53,8 @@ const prompt = ai.definePrompt({
   input: {schema: AnalyzeTrendsInputSchema},
   output: {schema: AnalyzeTrendsOutputSchema},
   prompt: `You are a viral content strategist and conspiracy theory expert. Your job is to analyze the digital zeitgeist.
+All your output, including trends, summaries, and suggestions, MUST be in the language specified by the 'language' code: {{{language}}}.
+
 {{#if topic}}
 Analyze trends related to the specific topic: {{{topic}}}
 {{else}}

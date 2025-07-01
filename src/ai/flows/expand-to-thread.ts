@@ -16,6 +16,7 @@ const ExpandToThreadInputSchema = z.object({
   initialContent: z.string().describe('The starting text or theme for the thread.'),
   currentThread: z.array(z.string()).describe('The parts of the thread already generated.'),
   currentStage: z.enum(narrativeStages).describe('The current narrative stage to generate content for.'),
+  language: z.enum(['en', 'es-AR']).default('en').describe("The language for the generated content. 'es-AR' is Argentinian Spanish."),
 });
 export type ExpandToThreadInput = z.infer<typeof ExpandToThreadInputSchema>;
 
@@ -39,7 +40,8 @@ const prompt = ai.definePrompt({
   name: 'expandToThreadPrompt',
   input: {schema: ExpandToThreadPromptInputSchema},
   output: {schema: ExpandToThreadOutputSchema},
-  prompt: `You are an expert storyteller and social media strategist, specializing in creating viral, engaging threads with a cinematic structure. Your task is to expand on an initial idea and generate the next part of a thread based on a specific narrative stage.
+  prompt: `You are an expert storyteller and social media strategist, specializing in creating viral, engaging threads with a cinematic structure. 
+Your response MUST be in the language specified by the 'language' code: {{{language}}}. When the language is 'es-AR', use the provided Spanish narrative stage names as a guide. When it is 'en', translate them conceptually to guide your response (e.g., 'Planteamiento detonante' is the 'Inciting Incident').
 
 Follow this cinematic structure strictly:
 1. Intro: Hook the reader, present the core mystery.

@@ -19,6 +19,7 @@ const AlignPlatformContentInputSchema = z.object({
     .enum(['Twitter', 'Instagram', 'TikTok'])
     .describe('The platform for which content is being generated.'),
   targetAudience: z.string().describe('Description of the target audience for the content.'),
+  language: z.enum(['en', 'es-AR']).default('en').describe("The language for the generated content. 'es-AR' is Argentinian Spanish."),
 });
 export type AlignPlatformContentInput = z.infer<
   typeof AlignPlatformContentInputSchema
@@ -44,7 +45,7 @@ const alignPlatformContentPrompt = ai.definePrompt({
   name: 'alignPlatformContentPrompt',
   input: {schema: AlignPlatformContentInputSchema},
   output: {schema: AlignPlatformContentOutputSchema},
-  prompt: `You are an expert social media manager specializing in book promotion.
+  prompt: `You are an expert social media manager specializing in book promotion. Your response MUST be in the language specified by the 'language' code: {{{language}}}.
 
   Based on the provided theme, book title, platform, and target audience, generate a content suggestion that is optimized for the specific platform and designed to promote the book.
 

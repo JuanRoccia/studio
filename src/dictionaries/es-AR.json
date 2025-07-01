@@ -51,7 +51,9 @@
             "title": "Análisis de Tendencias Completo",
             "suggestedTopics": "Temas Sugeridos (hacé clic para usar):",
             "suggestedKeywords": "Palabras Clave Sugeridas (hacé clic para usar):",
-            "alignSwitch": "Alinear temas generados con tendencias relacionadas"
+            "alignSwitch": "Alinear temas generados con tendencias relacionadas",
+            "errorTitle": "Error en Análisis de Tendencias",
+            "errorDescription": "No se pudieron cargar los datos de tendencias. Por favor, intentá de nuevo."
         },
         "form": {
             "currentEventsLabel": "Eventos Actuales o Temas",
@@ -167,7 +169,9 @@
             "title": "Análisis de Tendencias",
             "buttonText": "Verificar Tendencias para \"{topic}\"",
             "buttonDefaultText": "Tema",
-            "relatedHashtags": "Hashtags Relacionados:"
+            "relatedHashtags": "Hashtags Relacionados:",
+            "errorTitle": "Falló el Análisis de Tendencias",
+            "errorDescription": "No se pudieron obtener las tendencias para este tema."
         },
         "publish": {
             "title": "Publicar",

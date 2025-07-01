@@ -8,11 +8,12 @@ import { Copy, Check, ArrowRight } from "lucide-react";
 
 type GeneratedThemesListProps = {
   themes: string[];
+  lang: string;
   showAlignerButton?: boolean;
   dict: any;
 };
 
-export function GeneratedThemesList({ themes, showAlignerButton = false, dict }: GeneratedThemesListProps) {
+export function GeneratedThemesList({ themes, lang, showAlignerButton = false, dict }: GeneratedThemesListProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const { toast } = useToast();
 
@@ -59,7 +60,7 @@ export function GeneratedThemesList({ themes, showAlignerButton = false, dict }:
       {showAlignerButton && (
         <div className="flex justify-end pt-2">
             <Button asChild size="lg">
-                <Link href="/dashboard/content-aligner">
+                <Link href={`/${lang}/dashboard/content-aligner`}>
                     {dict.continueButton}
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

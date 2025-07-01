@@ -13,9 +13,10 @@ import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { expandToThread, type ExpandToThreadInput } from '@/ai/flows/expand-to-thread';
+import { analyzeTrends, type AnalyzeTrendsOutput } from '@/ai/flows/analyze-trends';
 import { narrativeStages } from '@/ai/narrative-stages';
 
-export function ContentPublisher({ dict, sharedDict }: { dict: any, sharedDict: any }) {
+export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dict: any, sharedDict: any }) {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
@@ -32,7 +33,7 @@ export function ContentPublisher({ dict, sharedDict }: { dict: any, sharedDict: 
   const [isPublishing, setIsPublishing] = useState(false);
 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [trends, setTrends] = useState<string[]>([]);
+  const [trends, setTrends] = useState<AnalyzeTrendsOutput | null>(null);
 
   const isThreadComplete = stageIndex >= narrativeStages.length -1;
 
@@ -56,6 +57,7 @@ export function ContentPublisher({ dict, sharedDict }: { dict: any, sharedDict: 
             initialContent: threadParts[0],
             currentThread: threadParts,
             currentStage: currentStage,
+            language: lang as 'en' | 'es-AR',
         };
         const result = await expandToThread(input);
         const newThreadParts = [...threadParts, `\n\n${stageIndex + 1}/ ${result.nextTweet}`];
@@ -83,12 +85,26 @@ export function ContentPublisher({ dict, sharedDict }: { dict: any, sharedDict: 
   };
   
   const handleCheckTrends = async () => {
+    if (!initialTheme) return;
     setIsCheckingTrends(true);
-    // Placeholder for AI flow call
-    await new Promise(res => setTimeout(res, 1500));
-    setTrends(["#DarkWebMysteries", "#CodedMessages", "#GlobalEnigma"]);
-    toast({ title: sharedDict.toasts.trends_fetched });
-    setIsCheckingTrends(false);
+    setTrends(null);
+    try {
+        const trendResults = await analyzeTrends({ 
+            topic: initialTheme, 
+            language: lang as 'en' | 'es-AR' 
+        });
+        setTrends(trendResults);
+        toast({ title: sharedDict.toasts.trends_fetched });
+    } catch (error) {
+        console.error("Failed to analyze trends", error);
+        toast({
+            variant: "destructive",
+            title: dict.trendAnalysis.errorTitle,
+            description: dict.trendAnalysis.errorDescription
+        });
+    } finally {
+        setIsCheckingTrends(false);
+    }
   };
 
   const handlePublish = async () => {
@@ -178,12 +194,14 @@ export function ContentPublisher({ dict, sharedDict }: { dict: any, sharedDict: 
                 {isCheckingTrends ? <Loader2 className="animate-spin" /> : <Wand2 />}
                 <span className="truncate">{dict.trendAnalysis.buttonText.replace('{topic}', initialTheme || dict.trendAnalysis.buttonDefaultText)}</span>
             </Button>
-            {trends.length > 0 && (
+             {isCheckingTrends && <Skeleton className="h-20 w-full" />}
+             {trends && !isCheckingTrends && (
                 <div className="space-y-2">
                     <h4 className="font-semibold text-sm">{dict.trendAnalysis.relatedHashtags}</h4>
                     <div className="flex flex-wrap gap-2">
-                        {trends.map(trend => <Badge key={trend} variant="secondary">{trend}</Badge>)}
+                        {trends.trends.map(trend => <Badge key={trend} variant="secondary">{trend}</Badge>)}
                     </div>
+                    <p className="text-xs text-muted-foreground pt-2 break-words">{trends.summary}</p>
                 </div>
             )}
           </CardContent>
