@@ -165,6 +165,12 @@
             "title": "Generated Image",
             "placeholder": "Image will appear here"
         },
+        "refine": {
+            "inputPlaceholder": "e.g., Make it more mysterious, check grammar...",
+            "buttonText": "Refine",
+            "errorTitle": "Missing Content",
+            "errorDescription": "Please provide content and a request before refining."
+        },
         "trendAnalysis": {
             "title": "Trend Analysis",
             "buttonText": "Check Trends for \"{topic}\"",
@@ -206,7 +212,12 @@
             "publishing_title": "Publishing content...",
             "publishing_description": "Connecting to the social matrix...",
             "publish_success_title": "Content Published!",
-            "publish_success_description": "Your message has been broadcast."
+            "publish_success_description": "Your message has been broadcast.",
+            "refining_content_title": "Refining content...",
+            "refining_content_description": "The AI is polishing your text.",
+            "refine_success": "Content refined successfully!",
+            "refine_error_title": "Error Refining Content",
+            "refine_error_description": "Could not refine the content. Please try again."
         }
     }
 }

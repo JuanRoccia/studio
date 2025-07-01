@@ -165,6 +165,12 @@
             "title": "Imagen Generada",
             "placeholder": "La imagen aparecerá acá"
         },
+        "refine": {
+            "inputPlaceholder": "Ej: Hacelo más misterioso, revisá la gramática...",
+            "buttonText": "Refinar",
+            "errorTitle": "Falta Contenido",
+            "errorDescription": "Por favor, ingresá contenido y una solicitud antes de refinar."
+        },
         "trendAnalysis": {
             "title": "Análisis de Tendencias",
             "buttonText": "Verificar Tendencias para \"{topic}\"",
@@ -206,7 +212,12 @@
             "publishing_title": "Publicando contenido...",
             "publishing_description": "Conectando con la matriz social...",
             "publish_success_title": "¡Contenido Publicado!",
-            "publish_success_description": "Tu mensaje ha sido transmitido."
+            "publish_success_description": "Tu mensaje ha sido transmitido.",
+            "refining_content_title": "Refinando contenido...",
+            "refining_content_description": "La IA está puliendo tu texto.",
+            "refine_success": "¡Contenido refinado con éxito!",
+            "refine_error_title": "Error al Refinar Contenido",
+            "refine_error_description": "No se pudo refinar el contenido. Por favor, intentá de nuevo."
         }
     }
 }

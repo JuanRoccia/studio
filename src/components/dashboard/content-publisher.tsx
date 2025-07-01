@@ -15,6 +15,8 @@ import { Progress } from '@/components/ui/progress';
 import { expandToThread, type ExpandToThreadInput } from '@/ai/flows/expand-to-thread';
 import { analyzeTrends, type AnalyzeTrendsOutput } from '@/ai/flows/analyze-trends';
 import { narrativeStages } from '@/ai/narrative-stages';
+import { Input } from '../ui/input';
+import { refineContent } from '@/ai/flows/refine-content';
 
 export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dict: any, sharedDict: any }) {
   const searchParams = useSearchParams();
@@ -31,6 +33,8 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isCheckingTrends, setIsCheckingTrends] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [refineRequest, setRefineRequest] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [trends, setTrends] = useState<AnalyzeTrendsOutput | null>(null);
@@ -115,6 +119,35 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
     setIsPublishing(false);
   }
 
+  const handleRefineContent = async () => {
+    if (!refineRequest || !content) {
+        toast({
+            variant: "destructive",
+            title: dict.refine.errorTitle,
+            description: dict.refine.errorDescription,
+        });
+        return;
+    }
+    setIsRefining(true);
+    toast({ title: sharedDict.toasts.refining_content_title, description: sharedDict.toasts.refining_content_description });
+
+    try {
+        const result = await refineContent({
+            content,
+            request: refineRequest,
+            language: lang as 'en' | 'es-AR',
+        });
+        setContent(result.refinedContent);
+        setRefineRequest(''); // Clear input after successful refinement
+        toast({ title: sharedDict.toasts.refine_success });
+    } catch (error) {
+        console.error(error);
+        toast({ variant: "destructive", title: sharedDict.toasts.refine_error_title, description: sharedDict.toasts.refine_error_description });
+    } finally {
+        setIsRefining(false);
+    }
+  }
+
   const progressPercentage = (stageIndex / (narrativeStages.length - 1)) * 100;
 
   return (
@@ -140,17 +173,37 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
             />
             <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
-                    <Button onClick={handleGenerateThread} disabled={isGeneratingThread || isThreadComplete}>
+                    <Button onClick={handleGenerateThread} disabled={isGeneratingThread || isThreadComplete || isRefining}>
                         {isGeneratingThread ? <Loader2 className="animate-spin" /> : <Repeat />}
                         {isThreadComplete ? dict.buttons.threadComplete : dict.buttons.expandThread}
                     </Button>
-                    <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
+                    <Button onClick={handleGenerateImage} disabled={isGeneratingImage || isRefining}>
                         {isGeneratingImage ? <Loader2 className="animate-spin" /> : <ImageIcon />}
                         {dict.buttons.generateImage}
                     </Button>
                 </div>
+
+                <div className="flex flex-wrap gap-2 items-center border-t pt-4">
+                    <Input 
+                        value={refineRequest}
+                        onChange={(e) => setRefineRequest(e.target.value)}
+                        placeholder={dict.refine.inputPlaceholder}
+                        className="flex-1 min-w-[200px]"
+                        disabled={isRefining}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !isRefining && refineRequest) {
+                            handleRefineContent();
+                          }
+                        }}
+                    />
+                    <Button onClick={handleRefineContent} disabled={isRefining || !refineRequest}>
+                        {isRefining ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                        {dict.refine.buttonText}
+                    </Button>
+                </div>
+
                 {threadParts.length > 1 && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 pt-4 border-t">
                         <div className="flex justify-between items-center text-xs text-muted-foreground">
                             <span>{dict.narrativeProgress.title}</span>
                             <span>{isThreadComplete ? dict.narrativeProgress.complete : narrativeStages[stageIndex]}</span>
