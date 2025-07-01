@@ -9,10 +9,14 @@ import {
 } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarDays } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function ContentCalendar() {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>();
+
+  useEffect(() => {
+    setDate(new Date());
+  }, []);
 
   return (
     <Card className="shadow-lg shadow-primary/10">
