@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { expandToThread, narrativeStages, type ExpandToThreadInput } from '@/ai/flows/expand-to-thread';
 
 export function ContentPublisher() {
   const searchParams = useSearchParams();
@@ -20,6 +22,9 @@ export function ContentPublisher() {
   const initialTheme = searchParams.get('theme') || '';
 
   const [content, setContent] = useState(initialContent);
+  const [threadParts, setThreadParts] = useState<string[]>(initialContent ? [initialContent] : []);
+  const [stageIndex, setStageIndex] = useState(0);
+
   const [isGeneratingThread, setIsGeneratingThread] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isCheckingTrends, setIsCheckingTrends] = useState(false);
@@ -28,18 +33,41 @@ export function ContentPublisher() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [trends, setTrends] = useState<string[]>([]);
 
+  const isThreadComplete = stageIndex >= narrativeStages.length -1;
+
   useEffect(() => {
     setContent(initialContent);
+    if(initialContent) {
+        setThreadParts([initialContent]);
+        setStageIndex(0);
+    }
   }, [initialContent]);
 
   const handleGenerateThread = async () => {
+    if (isThreadComplete) return;
+
     setIsGeneratingThread(true);
-    toast({ title: "Expanding to thread...", description: "This will take a moment." });
-    // Placeholder for AI flow call
-    await new Promise(res => setTimeout(res, 2000));
-    setContent(content + "\n\n1/ This is the first tweet in a new thread, expanding on the original idea. The AI can elaborate on key points, add details, and structure it for maximum engagement. #TruthRevealed");
-    toast({ title: "Thread expanded!"});
-    setIsGeneratingThread(false);
+    const currentStage = narrativeStages[stageIndex];
+    toast({ title: `Expanding thread: ${currentStage}`, description: "This will take a moment." });
+
+    try {
+        const input: ExpandToThreadInput = {
+            initialContent: threadParts[0],
+            currentThread: threadParts,
+            currentStage: currentStage,
+        };
+        const result = await expandToThread(input);
+        const newThreadParts = [...threadParts, `\n\n${stageIndex + 1}/ ${result.nextTweet}`];
+        setThreadParts(newThreadParts);
+        setContent(newThreadParts.join(''));
+        setStageIndex(prev => prev + 1);
+        toast({ title: "Thread expanded!"});
+    } catch(error) {
+        console.error(error);
+        toast({ variant: "destructive", title: "Error Expanding Thread", description: "Could not generate the next part of the thread." });
+    } finally {
+        setIsGeneratingThread(false);
+    }
   };
   
   const handleGenerateImage = async () => {
@@ -70,6 +98,8 @@ export function ContentPublisher() {
     setIsPublishing(false);
   }
 
+  const progressPercentage = (stageIndex / (narrativeStages.length - 1)) * 100;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 flex flex-col gap-8">
@@ -87,19 +117,30 @@ export function ContentPublisher() {
             <Textarea 
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              rows={8}
+              rows={12}
               placeholder="Your content goes here..."
               className="text-base"
             />
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={handleGenerateThread} disabled={isGeneratingThread}>
-                {isGeneratingThread ? <Loader2 className="animate-spin" /> : <Repeat />}
-                Expand to Thread
-              </Button>
-               <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
-                {isGeneratingImage ? <Loader2 className="animate-spin" /> : <ImageIcon />}
-                Generate Image
-              </Button>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2">
+                    <Button onClick={handleGenerateThread} disabled={isGeneratingThread || isThreadComplete}>
+                        {isGeneratingThread ? <Loader2 className="animate-spin" /> : <Repeat />}
+                        {isThreadComplete ? 'Thread Complete' : 'Expand to Thread'}
+                    </Button>
+                    <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
+                        {isGeneratingImage ? <Loader2 className="animate-spin" /> : <ImageIcon />}
+                        Generate Image
+                    </Button>
+                </div>
+                {threadParts.length > 1 && (
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                            <span>Narrative Progress</span>
+                            <span>{isThreadComplete ? 'Complete' : narrativeStages[stageIndex]}</span>
+                        </div>
+                        <Progress value={progressPercentage} className="w-full h-2" />
+                    </div>
+                )}
             </div>
           </CardContent>
         </Card>

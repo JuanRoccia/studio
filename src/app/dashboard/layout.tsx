@@ -163,8 +163,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </Sidebar>
         <SidebarInset>
           <header className="flex items-center justify-between p-4 md:p-6 border-b">
-             <h2 className="text-2xl font-headline font-semibold">{getPageTitle()}</h2>
-             <SidebarTrigger className="md:hidden"/>
+             <div className="flex items-center gap-2">
+                <SidebarTrigger />
+                <h2 className="text-2xl font-headline font-semibold">{getPageTitle()}</h2>
+             </div>
           </header>
           <main className="flex-1 p-4 md:p-6 lg:p-8">
             {children}
