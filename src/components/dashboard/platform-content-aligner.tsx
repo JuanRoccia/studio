@@ -203,11 +203,11 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
                     )}
                   </Button>
                 </div>
-                <p className="text-muted-foreground">{result.contentSuggestion}</p>
+                <p className="text-muted-foreground break-words">{result.contentSuggestion}</p>
               </div>
               <div className="space-y-2 pt-2">
                 <h3 className="font-headline text-lg">Reasoning:</h3>
-                <p className="text-muted-foreground">{result.reasoning}</p>
+                <p className="text-muted-foreground break-words">{result.reasoning}</p>
               </div>
             </div>
 

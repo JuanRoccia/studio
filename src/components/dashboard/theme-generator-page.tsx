@@ -158,7 +158,7 @@ export function ThemeGeneratorPage() {
                      <Info className="h-4 w-4" />
                       <AlertTitle className="font-headline">Trend Analysis Complete</AlertTitle>
                       <AlertDescription className="space-y-4 pt-2">
-                        <p className="text-foreground/80">{trends.summary}</p>
+                        <p className="text-foreground/80 break-words">{trends.summary}</p>
                         
                         <div className="space-y-2">
                           <Label>Suggested Topics (click to use):</Label>
@@ -182,7 +182,7 @@ export function ThemeGeneratorPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 pt-2">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2">
                             <Switch id="align-trends" checked={alignWithTrends} onCheckedChange={setAlignWithTrends} />
                             <Label htmlFor="align-trends" className="cursor-pointer text-sm">Align generated themes with related trends</Label>
                         </div>
