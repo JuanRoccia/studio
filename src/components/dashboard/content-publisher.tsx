@@ -1,12 +1,12 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Send, Wand2, Image as ImageIcon, Search, Repeat } from 'lucide-react';
+import { Loader2, Send, Wand2, Image as ImageIcon, Search, Repeat, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
@@ -17,6 +17,7 @@ import { analyzeTrends, type AnalyzeTrendsOutput } from '@/ai/flows/analyze-tren
 import { narrativeStages } from '@/ai/narrative-stages';
 import { Input } from '../ui/input';
 import { refineContent } from '@/ai/flows/refine-content';
+import { generateImage } from '@/ai/flows/generate-image';
 
 export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dict: any, sharedDict: any }) {
   const searchParams = useSearchParams();
@@ -38,6 +39,8 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [trends, setTrends] = useState<AnalyzeTrendsOutput | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isThreadComplete = stageIndex >= narrativeStages.length -1;
 
@@ -80,14 +83,54 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   const handleGenerateImage = async () => {
     setIsGeneratingImage(true);
     setGeneratedImage(null);
+    const imagePrompt = initialTheme || content;
+    if (!imagePrompt) {
+        toast({ variant: "destructive", title: dict.generatedImage.errorTitle, description: dict.generatedImage.errorDescription });
+        setIsGeneratingImage(false);
+        return;
+    }
+
     toast({ title: sharedDict.toasts.generating_image_title, description: sharedDict.toasts.generating_image_description });
-    // Placeholder for AI flow call
-    await new Promise(res => setTimeout(res, 3000));
-    setGeneratedImage("https://placehold.co/1200x675.png");
-    toast({ title: sharedDict.toasts.generate_image_success });
-    setIsGeneratingImage(false);
+    try {
+        const result = await generateImage({ prompt: imagePrompt });
+        setGeneratedImage(result.imageDataUri);
+        toast({ title: sharedDict.toasts.generate_image_success });
+    } catch (error) {
+        console.error(error);
+        toast({ variant: "destructive", title: sharedDict.toasts.generate_image_error_title, description: sharedDict.toasts.generate_image_error_description });
+    } finally {
+        setIsGeneratingImage(false);
+    }
   };
   
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) { // 4MB limit
+        toast({
+          variant: "destructive",
+          title: sharedDict.toasts.upload_image_error_title,
+          description: sharedDict.toasts.upload_image_too_large,
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGeneratedImage(reader.result as string);
+        toast({ title: sharedDict.toasts.upload_image_success });
+      };
+      reader.onerror = () => {
+        toast({ variant: "destructive", title: sharedDict.toasts.upload_image_error_title, description: sharedDict.toasts.upload_image_error_description });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+
   const handleCheckTrends = async () => {
     if (!initialTheme) return;
     setIsCheckingTrends(true);
@@ -173,13 +216,24 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
             />
             <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
-                    <Button onClick={handleGenerateThread} disabled={isGeneratingThread || isThreadComplete || isRefining}>
+                    <Button onClick={handleGenerateThread} disabled={isGeneratingThread || isThreadComplete || isRefining || isGeneratingImage}>
                         {isGeneratingThread ? <Loader2 className="animate-spin" /> : <Repeat />}
                         {isThreadComplete ? dict.buttons.threadComplete : dict.buttons.expandThread}
                     </Button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/png, image/jpeg, image/webp"
+                    />
                     <Button onClick={handleGenerateImage} disabled={isGeneratingImage || isRefining}>
                         {isGeneratingImage ? <Loader2 className="animate-spin" /> : <ImageIcon />}
                         {dict.buttons.generateImage}
+                    </Button>
+                    <Button onClick={handleUploadClick} variant="outline" disabled={isGeneratingImage || isRefining}>
+                        <Upload />
+                        {dict.buttons.uploadImage}
                     </Button>
                 </div>
 
@@ -189,14 +243,14 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
                         onChange={(e) => setRefineRequest(e.target.value)}
                         placeholder={dict.refine.inputPlaceholder}
                         className="flex-1 min-w-[200px]"
-                        disabled={isRefining}
+                        disabled={isRefining || isGeneratingImage}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !isRefining && refineRequest) {
                             handleRefineContent();
                           }
                         }}
                     />
-                    <Button onClick={handleRefineContent} disabled={isRefining || !refineRequest}>
+                    <Button onClick={handleRefineContent} disabled={isRefining || !refineRequest || isGeneratingImage}>
                         {isRefining ? <Loader2 className="animate-spin" /> : <Wand2 />}
                         {dict.refine.buttonText}
                     </Button>
@@ -222,7 +276,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
                 {isGeneratingImage && <Skeleton className="w-full aspect-video rounded-md" />}
                 {generatedImage && !isGeneratingImage && (
                      <div className="relative aspect-video rounded-md overflow-hidden border">
-                        <Image src={generatedImage} alt="Generated by AI" layout="fill" objectFit="cover" data-ai-hint="conspiracy theory" />
+                        <Image src={generatedImage} alt={dict.generatedImage.altText} layout="fill" objectFit="cover" data-ai-hint="generated content" />
                      </div>
                 )}
                 {!generatedImage && !isGeneratingImage && (

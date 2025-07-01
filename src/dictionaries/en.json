@@ -155,7 +155,8 @@
         "buttons": {
             "expandThread": "Expand to Thread",
             "threadComplete": "Thread Complete",
-            "generateImage": "Generate Image"
+            "generateImage": "Generate Image",
+            "uploadImage": "Upload Image"
         },
         "narrativeProgress": {
             "title": "Narrative Progress",
@@ -163,7 +164,10 @@
         },
         "generatedImage": {
             "title": "Generated Image",
-            "placeholder": "Image will appear here"
+            "placeholder": "Image will appear here",
+            "errorTitle": "Cannot Generate Image",
+            "errorDescription": "Please provide a theme or content to generate an image from.",
+            "altText": "Image for the content"
         },
         "refine": {
             "inputPlaceholder": "e.g., Make it more mysterious, check grammar...",
@@ -208,6 +212,12 @@
             "generating_image_title": "Generating related image...",
             "generating_image_description": "The AI is creating a visual masterpiece.",
             "generate_image_success": "Image generated successfully!",
+            "generate_image_error_title": "Image Generation Failed",
+            "generate_image_error_description": "Could not generate the image. Please try again.",
+            "upload_image_success": "Image uploaded successfully!",
+            "upload_image_error_title": "Image Upload Failed",
+            "upload_image_error_description": "There was a problem uploading your image.",
+            "upload_image_too_large": "The selected image is too large. Please choose a file under 4MB.",
             "trends_fetched": "Latest trends fetched.",
             "publishing_title": "Publishing content...",
             "publishing_description": "Connecting to the social matrix...",

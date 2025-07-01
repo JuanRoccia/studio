@@ -155,7 +155,8 @@
         "buttons": {
             "expandThread": "Expandir a Hilo",
             "threadComplete": "Hilo Completo",
-            "generateImage": "Generar Imagen"
+            "generateImage": "Generar Imagen",
+            "uploadImage": "Subir Imagen"
         },
         "narrativeProgress": {
             "title": "Progreso de la Narrativa",
@@ -163,7 +164,10 @@
         },
         "generatedImage": {
             "title": "Imagen Generada",
-            "placeholder": "La imagen aparecerá acá"
+            "placeholder": "La imagen aparecerá acá",
+            "errorTitle": "No se puede generar la imagen",
+            "errorDescription": "Por favor, proporcioná un tema o contenido para generar una imagen.",
+            "altText": "Imagen para el contenido"
         },
         "refine": {
             "inputPlaceholder": "Ej: Hacelo más misterioso, revisá la gramática...",
@@ -208,6 +212,12 @@
             "generating_image_title": "Generando imagen relacionada...",
             "generating_image_description": "La IA está creando una obra maestra visual.",
             "generate_image_success": "¡Imagen generada con éxito!",
+            "generate_image_error_title": "Falló la Generación de Imagen",
+            "generate_image_error_description": "No se pudo generar la imagen. Por favor, intentá de nuevo.",
+            "upload_image_success": "¡Imagen subida con éxito!",
+            "upload_image_error_title": "Falló la Subida de Imagen",
+            "upload_image_error_description": "Hubo un problema al subir tu imagen.",
+            "upload_image_too_large": "La imagen seleccionada es demasiado grande. Por favor, elegí un archivo de menos de 4MB.",
             "trends_fetched": "Últimas tendencias obtenidas.",
             "publishing_title": "Publicando contenido...",
             "publishing_description": "Conectando con la matriz social...",
