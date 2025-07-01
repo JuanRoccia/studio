@@ -31,10 +31,13 @@ export async function expandToThread(
   return expandToThreadFlow(input);
 }
 
+const ExpandToThreadPromptInputSchema = ExpandToThreadInputSchema.extend({
+  isFinalStage: z.boolean().describe('Whether this is the final stage of the narrative.')
+});
 
 const prompt = ai.definePrompt({
   name: 'expandToThreadPrompt',
-  input: {schema: ExpandToThreadInputSchema},
+  input: {schema: ExpandToThreadPromptInputSchema},
   output: {schema: ExpandToThreadOutputSchema},
   prompt: `You are an expert storyteller and social media strategist, specializing in creating viral, engaging threads with a cinematic structure. Your task is to expand on an initial idea and generate the next part of a thread based on a specific narrative stage.
 
@@ -64,7 +67,7 @@ Your task is to generate the text for the **{{{currentStage}}}** stage of the st
 - Do NOT repeat previous parts of the thread.
 - ONLY generate the text for the requested stage.
 
-{{#if (eq currentStage "Desenlace y resolución")}}
+{{#if isFinalStage}}
 - CRITICAL: For this final stage, you MUST conclude the story and seamlessly integrate a call to action to discover more by purchasing the book "The Ignoble Verities" or visiting ignobilesveritates.com.
 {{/if}}
 
@@ -79,11 +82,14 @@ const expandToThreadFlow = ai.defineFlow(
     outputSchema: ExpandToThreadOutputSchema,
   },
   async (input) => {
-     let retries = 3;
+    const isFinalStage = input.currentStage === 'Desenlace y resolución';
+    const promptInput = { ...input, isFinalStage };
+
+    let retries = 3;
     let lastError: any;
     for (let i = 0; i < retries; i++) {
       try {
-        const { output } = await prompt(input);
+        const { output } = await prompt(promptInput);
         return output!;
       } catch (e) {
         lastError = e;
