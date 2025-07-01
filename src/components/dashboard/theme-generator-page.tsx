@@ -164,8 +164,16 @@ export function ThemeGeneratorPage() {
                           <Label>Suggested Topics (click to use):</Label>
                           <div className="flex flex-wrap gap-2">
                             {trends.suggestedTopics.map((topic, i) => (
-                              <Button key={i} type="button" variant="outline" size="sm" onClick={() => handleSuggestionClick('currentEvents', topic)}>
-                                <Plus className="mr-2 h-4 w-4" /> {topic}
+                              <Button 
+                                key={i} 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleSuggestionClick('currentEvents', topic)}
+                                className="h-auto whitespace-normal text-left justify-start"
+                              >
+                                <Plus className="mr-2 h-4 w-4 self-start mt-1 shrink-0" />
+                                <span className="break-words">{topic}</span>
                               </Button>
                             ))}
                           </div>
@@ -175,8 +183,16 @@ export function ThemeGeneratorPage() {
                           <Label>Suggested Keywords (click to use):</Label>
                           <div className="flex flex-wrap gap-2">
                             {trends.suggestedKeywords.map((keyword, i) => (
-                              <Button key={i} type="button" variant="outline" size="sm" onClick={() => handleSuggestionClick('keywords', keyword)}>
-                                <Plus className="mr-2 h-4 w-4" /> {keyword}
+                               <Button 
+                                key={i} 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleSuggestionClick('keywords', keyword)}
+                                className="h-auto whitespace-normal text-left justify-start"
+                              >
+                                <Plus className="mr-2 h-4 w-4 self-start mt-1 shrink-0" />
+                                <span className="break-words">{keyword}</span>
                               </Button>
                             ))}
                           </div>
