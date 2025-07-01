@@ -8,3 +8,4 @@ import '@/ai/flows/analyze-trends.ts';
 import '@/ai/flows/expand-to-thread.ts';
 import '@/ai/flows/refine-content.ts';
 import '@/ai/flows/generate-image.ts';
+import '@/ai/flows/generate-engagement-strategy.ts';

@@ -1,12 +1,13 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Send, Wand2, Image as ImageIcon, Search, Repeat, Upload } from 'lucide-react';
+import { Loader2, Send, Wand2, Image as ImageIcon, Search, Repeat, Upload, CalendarClock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
@@ -317,10 +318,23 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
             <CardHeader>
                 <CardTitle className="font-headline text-xl">{dict.publish.title}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-2">
                 <Button onClick={handlePublish} disabled={isPublishing} className="w-full" size="lg">
                     {isPublishing ? <Loader2 className="animate-spin" /> : <Send />}
                     {dict.publish.buttonText}
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                    <Link href={{
+                      pathname: `/${lang}/dashboard/scheduler`,
+                      query: { 
+                        content: content, 
+                        theme: initialTheme, 
+                        image: generatedImage || ''
+                      }
+                    }}>
+                        <CalendarClock />
+                        {dict.publish.scheduleButton}
+                    </Link>
                 </Button>
                 <p className="text-xs text-center text-muted-foreground mt-2">{dict.publish.description}</p>
             </CardContent>

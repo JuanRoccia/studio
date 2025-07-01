@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Wand2,
   Share2,
-  CalendarDays,
+  CalendarClock,
   LineChart,
   BookOpen,
   BadgeDollarSign,
@@ -63,6 +63,7 @@ export function DashboardLayoutClient({
     if (pathname.endsWith('/content-aligner'))
       return dict.pageTitles.contentAligner;
     if (pathname.endsWith('/publisher')) return dict.pageTitles.publisher;
+    if (pathname.endsWith('/scheduler')) return dict.pageTitles.scheduler;
     if (pathname.endsWith('/dashboard')) return dict.pageTitles.dashboard;
     return dict.pageTitles.default;
   };
@@ -136,9 +137,15 @@ export function DashboardLayoutClient({
               <SidebarGroup>
                 <SidebarGroupLabel>{dict.sidebar.planning}</SidebarGroupLabel>
                 <SidebarMenuItem>
-                  <SidebarMenuButton tooltip={dict.sidebar.scheduler}>
-                    <CalendarDays />
-                    <span>{dict.sidebar.scheduler}</span>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={dict.sidebar.scheduler}
+                    isActive={isActive('/dashboard/scheduler')}
+                  >
+                    <Link href={`/${lang}/dashboard/scheduler`}>
+                      <CalendarClock />
+                      <span>{dict.sidebar.scheduler}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>

@@ -8,6 +8,7 @@
             "themeGenerator": "Generador de Temas",
             "contentAligner": "Alineador de Contenido",
             "publisher": "Publicador",
+            "scheduler": "Planificador",
             "dashboard": "Tablero",
             "default": "Verdades Veladas"
         },
@@ -20,7 +21,7 @@
             "contentAligner": "Alineador",
             "publisher": "Publicador",
             "planning": "Planificación",
-            "scheduler": "Calendario",
+            "scheduler": "Planificador",
             "analytics": "Analíticas",
             "sales": "Ventas",
             "bookPromotion": "Promoción del Libro",
@@ -87,9 +88,7 @@
     "dashboardPage": {
         "performanceDashboard": {
             "title": "Tablero de Rendimiento",
-            "description": "Seguí el rendimiento de tu contenido y la interacción de tu audiencia.",
-            "weeklyEngagement": "Interacción Semanal",
-            "trafficSources": "Fuentes de Tráfico"
+            "description": "Seguí el rendimiento de tu contenido y la interacción de tu audiencia."
         },
         "conspiracyThemeGenerator": {
             "title": "Generador de Temas de Conspiración",
@@ -105,14 +104,6 @@
             "results": {
                 "title": "Temas Generados:"
             }
-        },
-        "taskScheduler": {
-            "title": "Tareas Diarias y Horarios Óptimos",
-            "description": "Tu cronograma automatizado para el máximo impacto."
-        },
-        "contentCalendar": {
-            "title": "Calendario de Contenido",
-            "description": "Visualizá tu cronograma de contenido y planificá con anticipación."
         },
         "promotionCards": {
             "book": {
@@ -186,7 +177,47 @@
         "publish": {
             "title": "Publicar",
             "buttonText": "Publicar Ahora",
+            "scheduleButton": "Programar Posteo",
             "description": "Publica en la cuenta de Twitter vinculada."
+        }
+    },
+    "schedulerPage": {
+        "title": "Planificador de Contenido y Estrategia",
+        "description": "Planificá tu contenido, visualizá tu cronograma y generá estrategias de engagement.",
+        "tasks": {
+            "header": "Tareas para el {date}",
+            "noTasks": "No hay tareas programadas para este día.",
+            "defaultTitle": "Posteo Programado",
+            "statusCompleted": "Completado",
+            "statusPending": "Pendiente"
+        },
+        "engagement": {
+            "title": "Estrategia de Engagement",
+            "description": "Generá texto persuasivo para interactuar con tu audiencia.",
+            "topicLabel": "Contexto / Tema",
+            "topicPlaceholder": "Ej: Un posteo de un usuario sobre la tierra plana",
+            "typeLabel": "Tipo",
+            "types": {
+                "comment": "Comentario",
+                "dm": "Mensaje Directo"
+            },
+            "styleLabel": "Estilo",
+            "styles": {
+                "nietzschean": "Nietzscheano",
+                "socratic": "Socrático",
+                "stoic": "Estoico"
+            },
+            "buttonText": "Generar Estrategia",
+            "results": {
+                "strategyTitle": "Estrategia:",
+                "textTitle": "Texto Sugerido:"
+            }
+        },
+        "toasts": {
+            "postScheduledTitle": "¡Posteo Programado!",
+            "postScheduledDescription": "Tu posteo fue agregado al calendario.",
+            "strategyErrorTitle": "Falló la Generación de Estrategia",
+            "strategyErrorDescription": "La IA no pudo generar una estrategia. Por favor, intentá de nuevo."
         }
     },
     "shared": {

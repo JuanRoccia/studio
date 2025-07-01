@@ -8,6 +8,7 @@
             "themeGenerator": "Theme Generator",
             "contentAligner": "Content Aligner",
             "publisher": "Content Publisher",
+            "scheduler": "Scheduler",
             "dashboard": "Dashboard",
             "default": "Veiled Truths"
         },
@@ -87,9 +88,7 @@
     "dashboardPage": {
         "performanceDashboard": {
             "title": "Performance Dashboard",
-            "description": "Track your content performance and audience engagement.",
-            "weeklyEngagement": "Weekly Engagement",
-            "trafficSources": "Traffic Sources"
+            "description": "Track your content performance and audience engagement."
         },
         "conspiracyThemeGenerator": {
             "title": "Conspiracy Theme Generator",
@@ -105,14 +104,6 @@
             "results": {
                 "title": "Generated Themes:"
             }
-        },
-        "taskScheduler": {
-            "title": "Daily Tasks & Optimal Times",
-            "description": "Your automated schedule for maximum impact."
-        },
-        "contentCalendar": {
-            "title": "Content Calendar",
-            "description": "Visualize your content schedule and plan ahead."
         },
         "promotionCards": {
             "book": {
@@ -186,7 +177,47 @@
         "publish": {
             "title": "Publish",
             "buttonText": "Publish Now",
+            "scheduleButton": "Schedule Post",
             "description": "Publishes to linked Twitter account."
+        }
+    },
+    "schedulerPage": {
+        "title": "Content Scheduler & Strategy",
+        "description": "Plan your content, visualize your schedule, and generate engagement strategies.",
+        "tasks": {
+            "header": "Tasks for {date}",
+            "noTasks": "No tasks scheduled for this day.",
+            "defaultTitle": "Scheduled Post",
+            "statusCompleted": "Completed",
+            "statusPending": "Pending"
+        },
+        "engagement": {
+            "title": "Engagement Strategy",
+            "description": "Generate persuasive text to interact with your audience.",
+            "topicLabel": "Context / Topic",
+            "topicPlaceholder": "e.g., A user's post about flat earth theory",
+            "typeLabel": "Type",
+            "types": {
+                "comment": "Comment",
+                "dm": "Direct Message"
+            },
+            "styleLabel": "Style",
+            "styles": {
+                "nietzschean": "Nietzschean",
+                "socratic": "Socratic",
+                "stoic": "Stoic"
+            },
+            "buttonText": "Generate Strategy",
+            "results": {
+                "strategyTitle": "Strategy:",
+                "textTitle": "Suggested Text:"
+            }
+        },
+        "toasts": {
+            "postScheduledTitle": "Post Scheduled!",
+            "postScheduledDescription": "Your post has been added to the calendar.",
+            "strategyErrorTitle": "Strategy Generation Failed",
+            "strategyErrorDescription": "The AI could not generate a strategy. Please try again."
         }
     },
     "shared": {
