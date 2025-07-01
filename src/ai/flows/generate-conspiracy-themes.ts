@@ -82,8 +82,23 @@ const generateConspiracyThemesFlow = ai.defineFlow(
     inputSchema: GenerateConspiracyThemesInputSchema,
     outputSchema: GenerateConspiracyThemesOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input) => {
+    let retries = 3;
+    let lastError: any;
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { output } = await prompt(input);
+        return output!;
+      } catch (e) {
+        lastError = e;
+        if (e instanceof Error && e.message.includes('503')) {
+          console.log(`Model overloaded, retrying in ${i + 1}s...`);
+          await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw new Error('The AI model is currently overloaded. Please try again later.', { cause: lastError });
   }
 );
