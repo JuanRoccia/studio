@@ -70,7 +70,7 @@ Your task is to generate the text for the **{{{currentStage}}}** stage of the st
 - ONLY generate the text for the requested stage.
 
 {{#if isFinalStage}}
-- CRITICAL: For this final stage, you MUST conclude the story and seamlessly integrate a call to action to discover more by purchasing the book "The Ignoble Verities" or visiting ignobilesveritates.com.
+- CRITICAL: For this final stage, you MUST conclude the story and seamlessly integrate a call to action to discover more by purchasing the book "Ignobiles Veritates" or visiting ignobilesveritates.com.
 {{/if}}
 
 Generate the content for the "{{{currentStage}}}" stage now.

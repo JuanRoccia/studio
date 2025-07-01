@@ -58,7 +58,7 @@ export function PlatformContentAligner({ lang, dict, sharedDict, showPublisherBu
     resolver: zodResolver(formSchema),
     defaultValues: {
       theme: "",
-      bookTitle: "The Ignoble Verities",
+      bookTitle: "Ignobiles Veritates",
       platform: "Twitter",
       targetAudience: "Skeptics and truth-seekers interested in hidden knowledge.",
     },
