@@ -1,0 +1,85 @@
+{
+    "metadata": {
+        "title": "Veiled Truths",
+        "description": "Content generator for the modern conspiracist."
+    },
+    "dashboardLayout": {
+        "pageTitles": {
+            "themeGenerator": "Theme Generator",
+            "contentAligner": "Content Aligner",
+            "publisher": "Content Publisher",
+            "dashboard": "Dashboard",
+            "default": "Veiled Truths"
+        },
+        "sidebar": {
+            "header": "Veiled Truths",
+            "dashboard": "Dashboard",
+            "aiTools": "AI Tools",
+            "themeGenerator": "Theme Generator",
+            "new": "New",
+            "contentAligner": "Content Aligner",
+            "publisher": "Publisher",
+            "planning": "Planning",
+            "scheduler": "Scheduler",
+            "analytics": "Analytics",
+            "sales": "Sales",
+            "bookPromotion": "Book Promotion",
+            "subscriptions": "Subscriptions"
+        },
+        "userMenu": {
+            "myAccount": "My Account",
+            "profile": "Profile",
+            "settings": "Settings",
+            "logout": "Log out",
+            "agentName": "Agent Smith",
+            "membership": "Pro Member",
+            "language": "Language",
+            "english": "English",
+            "argento": "Argento"
+        }
+    },
+    "themeGenerator": {
+        "title": "Advanced Theme Generation",
+        "description": "Craft the perfect conspiracy theme by providing context, keywords, and specifying the desired tone and format.",
+        "inspiration": {
+            "title": "Need Inspiration?",
+            "description": "Analyze the latest social media trends to get AI-powered suggestions for topics and keywords.",
+            "button": "Analyze Latest Trends",
+            "loading": "Analyzing latest social media trends..."
+        },
+        "trendAnalysis": {
+            "title": "Trend Analysis Complete",
+            "suggestedTopics": "Suggested Topics (click to use):",
+            "suggestedKeywords": "Suggested Keywords (click to use):",
+            "alignSwitch": "Align generated themes with related trends"
+        },
+        "form": {
+            "currentEventsLabel": "Current Events or Topics",
+            "currentEventsPlaceholder": "e.g., Recent unexplained global phenomena, political shifts, new scientific discoveries...",
+            "keywordsLabel": "Keywords",
+            "keywordsPlaceholder": "e.g., aliens, secret societies, ancient technology, simulation theory",
+            "toneLabel": "Tone",
+            "tonePlaceholder": "Select a tone",
+            "tones": {
+                "serious": "Serious",
+                "satirical": "Satirical",
+                "investigative": "Investigative",
+                "sensationalist": "Sensationalist"
+            },
+            "formatLabel": "Format / Platform",
+            "formatPlaceholder": "Select a format",
+            "formats": {
+                "general": "General Ideas",
+                "blog": "Blog Post Titles",
+                "twitter": "Twitter Thread Hooks",
+                "video": "Video Script Concepts"
+            },
+            "submitButton": "Generate Advanced Themes",
+            "generatingButton": "Generating..."
+        },
+        "results": {
+            "title": "Generated Themes",
+            "loading": "The AI is uncovering hidden truths..."
+        }
+    }
+}

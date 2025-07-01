@@ -1,0 +1,85 @@
+{
+    "metadata": {
+        "title": "Verdades Veladas",
+        "description": "Generador de contenido para el conspirador moderno."
+    },
+    "dashboardLayout": {
+        "pageTitles": {
+            "themeGenerator": "Generador de Temas",
+            "contentAligner": "Alineador de Contenido",
+            "publisher": "Publicador",
+            "dashboard": "Tablero",
+            "default": "Verdades Veladas"
+        },
+        "sidebar": {
+            "header": "Verdades Veladas",
+            "dashboard": "Tablero",
+            "aiTools": "Herramientas IA",
+            "themeGenerator": "Generador de Temas",
+            "new": "Nuevo",
+            "contentAligner": "Alineador",
+            "publisher": "Publicador",
+            "planning": "Planificación",
+            "scheduler": "Calendario",
+            "analytics": "Analíticas",
+            "sales": "Ventas",
+            "bookPromotion": "Promoción del Libro",
+            "subscriptions": "Suscripciones"
+        },
+        "userMenu": {
+            "myAccount": "Mi Cuenta",
+            "profile": "Perfil",
+            "settings": "Ajustes",
+            "logout": "Cerrar Sesión",
+            "agentName": "Agente Smith",
+            "membership": "Miembro Pro",
+            "language": "Idioma",
+            "english": "Inglés",
+            "argento": "Argento"
+        }
+    },
+    "themeGenerator": {
+        "title": "Generación Avanzada de Temas",
+        "description": "Creá el tema de conspiración perfecto proveyendo contexto, palabras clave y especificando el tono y formato deseado.",
+        "inspiration": {
+            "title": "¿Necesitás Inspiración?",
+            "description": "Analizá las últimas tendencias en redes sociales para obtener sugerencias de temas y palabras clave potenciadas por IA.",
+            "button": "Analizar Últimas Tendencias",
+            "loading": "Analizando las últimas tendencias de redes sociales..."
+        },
+        "trendAnalysis": {
+            "title": "Análisis de Tendencias Completo",
+            "suggestedTopics": "Temas Sugeridos (hacé clic para usar):",
+            "suggestedKeywords": "Palabras Clave Sugeridas (hacé clic para usar):",
+            "alignSwitch": "Alinear temas generados con tendencias relacionadas"
+        },
+        "form": {
+            "currentEventsLabel": "Eventos Actuales o Temas",
+            "currentEventsPlaceholder": "Ej: Fenómenos globales recientes sin explicación, cambios políticos, nuevos descubrimientos científicos...",
+            "keywordsLabel": "Palabras Clave",
+            "keywordsPlaceholder": "Ej: aliens, sociedades secretas, tecnología antigua, teoría de la simulación",
+            "toneLabel": "Tono",
+            "tonePlaceholder": "Seleccioná un tono",
+            "tones": {
+                "serious": "Serio",
+                "satirical": "Satírico",
+                "investigative": "De Investigación",
+                "sensationalist": "Sensacionalista"
+            },
+            "formatLabel": "Formato / Plataforma",
+            "formatPlaceholder": "Seleccioná un formato",
+            "formats": {
+                "general": "Ideas Generales",
+                "blog": "Títulos para Blog",
+                "twitter": "Ganchos para Hilos de Twitter",
+                "video": "Conceptos para Guiones de Video"
+            },
+            "submitButton": "Generar Temas Avanzados",
+            "generatingButton": "Generando..."
+        },
+        "results": {
+            "title": "Temas Generados",
+            "loading": "La IA está descubriendo verdades ocultas..."
+        }
+    }
+}
