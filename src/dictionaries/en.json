@@ -81,5 +81,128 @@
             "title": "Generated Themes",
             "loading": "The AI is uncovering hidden truths..."
         }
+    },
+    "dashboardPage": {
+        "performanceDashboard": {
+            "title": "Performance Dashboard",
+            "description": "Track your content performance and audience engagement.",
+            "weeklyEngagement": "Weekly Engagement",
+            "trafficSources": "Traffic Sources"
+        },
+        "conspiracyThemeGenerator": {
+            "title": "Conspiracy Theme Generator",
+            "description": "Generate conspiracy theory themes based on current events and keywords.",
+            "form": {
+                "currentEventsLabel": "Current Events",
+                "currentEventsPlaceholder": "e.g., Recent unexplained global phenomena, political shifts...",
+                "keywordsLabel": "Keywords",
+                "keywordsPlaceholder": "e.g., aliens, secret societies, ancient technology",
+                "submitButton": "Generate Themes",
+                "generatingButton": "Generating..."
+            },
+            "results": {
+                "title": "Generated Themes:"
+            }
+        },
+        "taskScheduler": {
+            "title": "Daily Tasks & Optimal Times",
+            "description": "Your automated schedule for maximum impact."
+        },
+        "contentCalendar": {
+            "title": "Content Calendar",
+            "description": "Visualize your content schedule and plan ahead."
+        },
+        "promotionCards": {
+            "book": {
+                "title": "Promote The Book",
+                "description": "Drive traffic to your masterpiece, \"The Ignoble Verities\".",
+                "content": "Feature the book prominently in your content. Use generated suggestions to create compelling posts that lead to sales.",
+                "button": "Go to Book Page"
+            },
+            "subscription": {
+                "title": "Subscription Funnel",
+                "description": "Convert followers into paying subscribers for exclusive content.",
+                "content": "Create automated content funnels that guide your audience towards your premium subscription offerings.",
+                "button": "View Subscription Tiers"
+            }
+        }
+    },
+    "contentAlignerPage": {
+        "title": "Platform Content Aligner",
+        "description": "Get AI-driven content suggestions tailored for each platform.",
+        "form": {
+            "themeLabel": "Conspiracy Theme",
+            "themePlaceholder": "Enter the theme from the generator",
+            "platformLabel": "Platform",
+            "platformPlaceholder": "Select a platform",
+            "audienceLabel": "Target Audience",
+            "audiencePlaceholder": "Describe your target audience",
+            "submitButton": "Get Suggestion",
+            "aligningButton": "Aligning..."
+        },
+        "results": {
+            "suggestionTitle": "Content Suggestion:",
+            "reasoningTitle": "Reasoning:",
+            "continueButton": "Continue to Publisher"
+        }
+    },
+    "publisherPage": {
+        "title": "Content Publisher",
+        "description": "Refine, enhance, and publish your generated content. The final step in your creation workflow.",
+        "contentPlaceholder": "Your content goes here...",
+        "buttons": {
+            "expandThread": "Expand to Thread",
+            "threadComplete": "Thread Complete",
+            "generateImage": "Generate Image"
+        },
+        "narrativeProgress": {
+            "title": "Narrative Progress",
+            "complete": "Complete"
+        },
+        "generatedImage": {
+            "title": "Generated Image",
+            "placeholder": "Image will appear here"
+        },
+        "trendAnalysis": {
+            "title": "Trend Analysis",
+            "buttonText": "Check Trends for \"{topic}\"",
+            "buttonDefaultText": "Topic",
+            "relatedHashtags": "Related Hashtags:"
+        },
+        "publish": {
+            "title": "Publish",
+            "buttonText": "Publish Now",
+            "description": "Publishes to linked Twitter account."
+        }
+    },
+    "shared": {
+        "generatedThemesList": {
+            "copySuccess": "Theme copied to clipboard",
+            "copyErrorTitle": "Failed to copy",
+            "copyErrorDescription": "Could not copy theme to clipboard.",
+            "continueButton": "Continue to Content Aligner"
+        },
+        "toasts": {
+            "error_generating_themes_title": "Error Generating Themes",
+            "error_generating_themes_description": "There was an issue generating conspiracy themes. Please try again.",
+            "error_generating_content_title": "Error Generating Content",
+            "error_generating_content_description": "There was an issue generating content. Please try again.",
+            "copy_suggestion_success": "Suggestion copied to clipboard",
+            "copy_suggestion_error_title": "Failed to copy",
+            "copy_suggestion_error_description": "Could not copy suggestion to clipboard.",
+            "expanding_thread_title": "Expanding thread: {stage}",
+            "expanding_thread_description": "This will take a moment.",
+            "expand_success": "Thread expanded!",
+            "expand_error_title": "Error Expanding Thread",
+            "expand_error_description": "Could not generate the next part of the thread.",
+            "generating_image_title": "Generating related image...",
+            "generating_image_description": "The AI is creating a visual masterpiece.",
+            "generate_image_success": "Image generated successfully!",
+            "trends_fetched": "Latest trends fetched.",
+            "publishing_title": "Publishing content...",
+            "publishing_description": "Connecting to the social matrix...",
+            "publish_success_title": "Content Published!",
+            "publish_success_description": "Your message has been broadcast."
+        }
     }
 }

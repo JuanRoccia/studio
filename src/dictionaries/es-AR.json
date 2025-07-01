@@ -81,5 +81,128 @@
             "title": "Temas Generados",
             "loading": "La IA está descubriendo verdades ocultas..."
         }
+    },
+    "dashboardPage": {
+        "performanceDashboard": {
+            "title": "Tablero de Rendimiento",
+            "description": "Seguí el rendimiento de tu contenido y la interacción de tu audiencia.",
+            "weeklyEngagement": "Interacción Semanal",
+            "trafficSources": "Fuentes de Tráfico"
+        },
+        "conspiracyThemeGenerator": {
+            "title": "Generador de Temas de Conspiración",
+            "description": "Generá temas de conspiración basados en eventos actuales y palabras clave.",
+            "form": {
+                "currentEventsLabel": "Eventos Actuales",
+                "currentEventsPlaceholder": "Ej: Fenómenos globales recientes sin explicación, cambios políticos...",
+                "keywordsLabel": "Palabras Clave",
+                "keywordsPlaceholder": "Ej: aliens, sociedades secretas, tecnología antigua",
+                "submitButton": "Generar Temas",
+                "generatingButton": "Generando..."
+            },
+            "results": {
+                "title": "Temas Generados:"
+            }
+        },
+        "taskScheduler": {
+            "title": "Tareas Diarias y Horarios Óptimos",
+            "description": "Tu cronograma automatizado para el máximo impacto."
+        },
+        "contentCalendar": {
+            "title": "Calendario de Contenido",
+            "description": "Visualizá tu cronograma de contenido y planificá con anticipación."
+        },
+        "promotionCards": {
+            "book": {
+                "title": "Promocioná el Libro",
+                "description": "Dirigí tráfico a tu obra maestra, \"The Ignoble Verities\".",
+                "content": "Destacá el libro en tu contenido. Usá las sugerencias generadas para crear publicaciones atractivas que generen ventas.",
+                "button": "Ir a la Página del Libro"
+            },
+            "subscription": {
+                "title": "Embudo de Suscripción",
+                "description": "Convertí seguidores en suscriptores de pago para contenido exclusivo.",
+                "content": "Creá embudos de contenido automatizados que guíen a tu audiencia hacia tus ofertas de suscripción premium.",
+                "button": "Ver Niveles de Suscripción"
+            }
+        }
+    },
+    "contentAlignerPage": {
+        "title": "Alineador de Contenido de Plataforma",
+        "description": "Obtené sugerencias de contenido impulsadas por IA y adaptadas a cada plataforma.",
+        "form": {
+            "themeLabel": "Tema de Conspiración",
+            "themePlaceholder": "Ingresá el tema del generador",
+            "platformLabel": "Plataforma",
+            "platformPlaceholder": "Seleccioná una plataforma",
+            "audienceLabel": "Audiencia Objetivo",
+            "audiencePlaceholder": "Describí tu audiencia objetivo",
+            "submitButton": "Obtener Sugerencia",
+            "aligningButton": "Alineando..."
+        },
+        "results": {
+            "suggestionTitle": "Sugerencia de Contenido:",
+            "reasoningTitle": "Razonamiento:",
+            "continueButton": "Continuar al Publicador"
+        }
+    },
+    "publisherPage": {
+        "title": "Publicador de Contenido",
+        "description": "Refiná, mejorá y publicá tu contenido generado. El paso final en tu flujo de creación.",
+        "contentPlaceholder": "Tu contenido va acá...",
+        "buttons": {
+            "expandThread": "Expandir a Hilo",
+            "threadComplete": "Hilo Completo",
+            "generateImage": "Generar Imagen"
+        },
+        "narrativeProgress": {
+            "title": "Progreso de la Narrativa",
+            "complete": "Completo"
+        },
+        "generatedImage": {
+            "title": "Imagen Generada",
+            "placeholder": "La imagen aparecerá acá"
+        },
+        "trendAnalysis": {
+            "title": "Análisis de Tendencias",
+            "buttonText": "Verificar Tendencias para \"{topic}\"",
+            "buttonDefaultText": "Tema",
+            "relatedHashtags": "Hashtags Relacionados:"
+        },
+        "publish": {
+            "title": "Publicar",
+            "buttonText": "Publicar Ahora",
+            "description": "Publica en la cuenta de Twitter vinculada."
+        }
+    },
+    "shared": {
+        "generatedThemesList": {
+            "copySuccess": "Tema copiado al portapapeles",
+            "copyErrorTitle": "Falló al copiar",
+            "copyErrorDescription": "No se pudo copiar el tema al portapapeles.",
+            "continueButton": "Continuar al Alineador de Contenido"
+        },
+        "toasts": {
+            "error_generating_themes_title": "Error al Generar Temas",
+            "error_generating_themes_description": "Hubo un problema al generar los temas. Por favor, intentá de nuevo.",
+            "error_generating_content_title": "Error al Generar Contenido",
+            "error_generating_content_description": "Hubo un problema al generar contenido. Por favor, intentá de nuevo.",
+            "copy_suggestion_success": "Sugerencia copiada al portapapeles",
+            "copy_suggestion_error_title": "Falló al copiar",
+            "copy_suggestion_error_description": "No se pudo copiar la sugerencia al portapapeles.",
+            "expanding_thread_title": "Expandiendo hilo: {stage}",
+            "expanding_thread_description": "Esto tomará un momento.",
+            "expand_success": "¡Hilo expandido!",
+            "expand_error_title": "Error al Expandir Hilo",
+            "expand_error_description": "No se pudo generar la siguiente parte del hilo.",
+            "generating_image_title": "Generando imagen relacionada...",
+            "generating_image_description": "La IA está creando una obra maestra visual.",
+            "generate_image_success": "¡Imagen generada con éxito!",
+            "trends_fetched": "Últimas tendencias obtenidas.",
+            "publishing_title": "Publicando contenido...",
+            "publishing_description": "Conectando con la matriz social...",
+            "publish_success_title": "¡Contenido Publicado!",
+            "publish_success_description": "Tu mensaje ha sido transmitido."
+        }
     }
 }

@@ -39,7 +39,7 @@ const formSchema = z.object({
     .max(100, "Keywords are too long."),
 });
 
-export function ConspiracyThemeGenerator() {
+export function ConspiracyThemeGenerator({ dict, sharedDict }: { dict: any, sharedDict: any }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] =
     useState<GenerateConspiracyThemesOutput | null>(null);
@@ -67,9 +67,8 @@ export function ConspiracyThemeGenerator() {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "Error Generating Themes",
-        description:
-          "There was an issue generating conspiracy themes. Please try again.",
+        title: sharedDict.toasts.error_generating_themes_title,
+        description: sharedDict.toasts.error_generating_themes_description,
       });
     } finally {
       setLoading(false);
@@ -81,11 +80,10 @@ export function ConspiracyThemeGenerator() {
       <CardHeader>
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
           <Wand2 className="w-6 h-6 text-primary" />
-          Conspiracy Theme Generator
+          {dict.title}
         </CardTitle>
         <CardDescription>
-          Generate conspiracy theory themes based on current events and
-          keywords.
+          {dict.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -97,10 +95,10 @@ export function ConspiracyThemeGenerator() {
                 name="currentEvents"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Current Events</FormLabel>
+                    <FormLabel>{dict.form.currentEventsLabel}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="e.g., Recent unexplained global phenomena, political shifts..."
+                        placeholder={dict.form.currentEventsPlaceholder}
                         {...field}
                         rows={4}
                       />
@@ -114,9 +112,9 @@ export function ConspiracyThemeGenerator() {
                 name="keywords"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Keywords</FormLabel>
+                    <FormLabel>{dict.form.keywordsLabel}</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., aliens, secret societies, ancient technology" {...field} />
+                      <Input placeholder={dict.form.keywordsPlaceholder} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -127,18 +125,18 @@ export function ConspiracyThemeGenerator() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
+                  {dict.form.generatingButton}
                 </>
               ) : (
-                "Generate Themes"
+                dict.form.submitButton
               )}
             </Button>
           </form>
         </Form>
         {result && (
            <div className="mt-6">
-            <h3 className="font-headline text-xl mb-4">Generated Themes:</h3>
-            <GeneratedThemesList themes={result.themes} />
+            <h3 className="font-headline text-xl mb-4">{dict.results.title}</h3>
+            <GeneratedThemesList themes={result.themes} dict={sharedDict.generatedThemesList} />
           </div>
         )}
       </CardContent>

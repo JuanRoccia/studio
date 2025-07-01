@@ -15,7 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { expandToThread, type ExpandToThreadInput } from '@/ai/flows/expand-to-thread';
 import { narrativeStages } from '@/ai/narrative-stages';
 
-export function ContentPublisher() {
+export function ContentPublisher({ dict, sharedDict }: { dict: any, sharedDict: any }) {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
@@ -49,7 +49,7 @@ export function ContentPublisher() {
 
     setIsGeneratingThread(true);
     const currentStage = narrativeStages[stageIndex];
-    toast({ title: `Expanding thread: ${currentStage}`, description: "This will take a moment." });
+    toast({ title: sharedDict.toasts.expanding_thread_title.replace('{stage}', currentStage), description: sharedDict.toasts.expanding_thread_description });
 
     try {
         const input: ExpandToThreadInput = {
@@ -62,10 +62,10 @@ export function ContentPublisher() {
         setThreadParts(newThreadParts);
         setContent(newThreadParts.join(''));
         setStageIndex(prev => prev + 1);
-        toast({ title: "Thread expanded!"});
+        toast({ title: sharedDict.toasts.expand_success});
     } catch(error) {
         console.error(error);
-        toast({ variant: "destructive", title: "Error Expanding Thread", description: "Could not generate the next part of the thread." });
+        toast({ variant: "destructive", title: sharedDict.toasts.expand_error_title, description: sharedDict.toasts.expand_error_description });
     } finally {
         setIsGeneratingThread(false);
     }
@@ -74,11 +74,11 @@ export function ContentPublisher() {
   const handleGenerateImage = async () => {
     setIsGeneratingImage(true);
     setGeneratedImage(null);
-    toast({ title: "Generating related image...", description: "The AI is creating a visual masterpiece." });
+    toast({ title: sharedDict.toasts.generating_image_title, description: sharedDict.toasts.generating_image_description });
     // Placeholder for AI flow call
     await new Promise(res => setTimeout(res, 3000));
     setGeneratedImage("https://placehold.co/1200x675.png");
-    toast({ title: "Image generated successfully!" });
+    toast({ title: sharedDict.toasts.generate_image_success });
     setIsGeneratingImage(false);
   };
   
@@ -87,15 +87,15 @@ export function ContentPublisher() {
     // Placeholder for AI flow call
     await new Promise(res => setTimeout(res, 1500));
     setTrends(["#DarkWebMysteries", "#CodedMessages", "#GlobalEnigma"]);
-    toast({ title: "Latest trends fetched." });
+    toast({ title: sharedDict.toasts.trends_fetched });
     setIsCheckingTrends(false);
   };
 
   const handlePublish = async () => {
     setIsPublishing(true);
-    toast({ title: "Publishing content...", description: "Connecting to the social matrix..." });
+    toast({ title: sharedDict.toasts.publishing_title, description: sharedDict.toasts.publishing_description });
     await new Promise(res => setTimeout(res, 2000));
-    toast({ title: "Content Published!", description: "Your message has been broadcast." });
+    toast({ title: sharedDict.toasts.publish_success_title, description: sharedDict.toasts.publish_success_description });
     setIsPublishing(false);
   }
 
@@ -108,10 +108,10 @@ export function ContentPublisher() {
           <CardHeader>
             <CardTitle className="font-headline text-2xl flex items-center gap-2">
               <Send className="w-6 h-6 text-primary" />
-              Content Publisher
+              {dict.title}
             </CardTitle>
             <CardDescription>
-              Refine, enhance, and publish your generated content. The final step in your creation workflow.
+              {dict.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -119,25 +119,25 @@ export function ContentPublisher() {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={12}
-              placeholder="Your content goes here..."
+              placeholder={dict.contentPlaceholder}
               className="text-base"
             />
             <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
                     <Button onClick={handleGenerateThread} disabled={isGeneratingThread || isThreadComplete}>
                         {isGeneratingThread ? <Loader2 className="animate-spin" /> : <Repeat />}
-                        {isThreadComplete ? 'Thread Complete' : 'Expand to Thread'}
+                        {isThreadComplete ? dict.buttons.threadComplete : dict.buttons.expandThread}
                     </Button>
                     <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
                         {isGeneratingImage ? <Loader2 className="animate-spin" /> : <ImageIcon />}
-                        Generate Image
+                        {dict.buttons.generateImage}
                     </Button>
                 </div>
                 {threadParts.length > 1 && (
                     <div className="space-y-2">
                         <div className="flex justify-between items-center text-xs text-muted-foreground">
-                            <span>Narrative Progress</span>
-                            <span>{isThreadComplete ? 'Complete' : narrativeStages[stageIndex]}</span>
+                            <span>{dict.narrativeProgress.title}</span>
+                            <span>{isThreadComplete ? dict.narrativeProgress.complete : narrativeStages[stageIndex]}</span>
                         </div>
                         <Progress value={progressPercentage} className="w-full h-2" />
                     </div>
@@ -147,7 +147,7 @@ export function ContentPublisher() {
         </Card>
         <Card className="shadow-lg shadow-primary/10">
             <CardHeader>
-                <CardTitle className="font-headline text-xl">Generated Image</CardTitle>
+                <CardTitle className="font-headline text-xl">{dict.generatedImage.title}</CardTitle>
             </CardHeader>
             <CardContent>
                 {isGeneratingImage && <Skeleton className="w-full aspect-video rounded-md" />}
@@ -158,7 +158,7 @@ export function ContentPublisher() {
                 )}
                 {!generatedImage && !isGeneratingImage && (
                     <div className="flex items-center justify-center aspect-video rounded-md border border-dashed bg-secondary/50">
-                        <p className="text-muted-foreground">Image will appear here</p>
+                        <p className="text-muted-foreground">{dict.generatedImage.placeholder}</p>
                     </div>
                 )}
             </CardContent>
@@ -170,17 +170,17 @@ export function ContentPublisher() {
           <CardHeader>
             <CardTitle className="font-headline text-xl flex items-center gap-2">
                 <Search />
-                Trend Analysis
+                {dict.trendAnalysis.title}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button onClick={handleCheckTrends} disabled={isCheckingTrends || !initialTheme} className="w-full justify-start text-left">
                 {isCheckingTrends ? <Loader2 className="animate-spin" /> : <Wand2 />}
-                <span className="truncate">Check Trends for "{initialTheme || 'Topic'}"</span>
+                <span className="truncate">{dict.trendAnalysis.buttonText.replace('{topic}', initialTheme || dict.trendAnalysis.buttonDefaultText)}</span>
             </Button>
             {trends.length > 0 && (
                 <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Related Hashtags:</h4>
+                    <h4 className="font-semibold text-sm">{dict.trendAnalysis.relatedHashtags}</h4>
                     <div className="flex flex-wrap gap-2">
                         {trends.map(trend => <Badge key={trend} variant="secondary">{trend}</Badge>)}
                     </div>
@@ -190,14 +190,14 @@ export function ContentPublisher() {
         </Card>
         <Card className="shadow-lg shadow-primary/10 bg-primary/5">
             <CardHeader>
-                <CardTitle className="font-headline text-xl">Publish</CardTitle>
+                <CardTitle className="font-headline text-xl">{dict.publish.title}</CardTitle>
             </CardHeader>
             <CardContent>
                 <Button onClick={handlePublish} disabled={isPublishing} className="w-full" size="lg">
                     {isPublishing ? <Loader2 className="animate-spin" /> : <Send />}
-                    Publish Now
+                    {dict.publish.buttonText}
                 </Button>
-                <p className="text-xs text-center text-muted-foreground mt-2">Publishes to linked Twitter account.</p>
+                <p className="text-xs text-center text-muted-foreground mt-2">{dict.publish.description}</p>
             </CardContent>
         </Card>
       </div>

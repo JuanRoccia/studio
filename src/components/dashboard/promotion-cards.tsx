@@ -13,17 +13,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { BookOpen, ShieldCheck } from "lucide-react";
 
-export function PromotionCards() {
+export function PromotionCards({ dict }: { dict: any }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
       <Card className="shadow-lg shadow-primary/10 overflow-hidden">
         <CardHeader>
           <CardTitle className="font-headline text-2xl flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-primary" />
-            Promote The Book
+            {dict.book.title}
           </CardTitle>
           <CardDescription>
-            Drive traffic to your masterpiece, "The Ignoble Verities".
+            {dict.book.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -37,13 +37,13 @@ export function PromotionCards() {
               />
           </div>
           <p className="mt-4 text-muted-foreground">
-            Feature the book prominently in your content. Use generated suggestions to create compelling posts that lead to sales.
+            {dict.book.content}
           </p>
         </CardContent>
         <CardFooter>
           <Button asChild className="w-full transition-all hover:shadow-[0_0_15px_2px_hsl(var(--primary)/0.5)]">
             <Link href="https://ignobilesveritates.com" target="_blank">
-              Go to Book Page
+              {dict.book.button}
             </Link>
           </Button>
         </CardFooter>
@@ -52,10 +52,10 @@ export function PromotionCards() {
         <CardHeader>
           <CardTitle className="font-headline text-2xl flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-primary" />
-            Subscription Funnel
+            {dict.subscription.title}
           </CardTitle>
           <CardDescription>
-            Convert followers into paying subscribers for exclusive content.
+            {dict.subscription.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -69,13 +69,13 @@ export function PromotionCards() {
               />
           </div>
           <p className="mt-4 text-muted-foreground">
-            Create automated content funnels that guide your audience towards your premium subscription offerings.
+            {dict.subscription.content}
           </p>
         </CardContent>
         <CardFooter>
           <Button asChild className="w-full transition-all hover:shadow-[0_0_15px_2px_hsl(var(--primary)/0.5)]">
             <Link href="https://ignobilesveritates.com" target="_blank">
-              View Subscription Tiers
+              {dict.subscription.button}
             </Link>
           </Button>
         </CardFooter>

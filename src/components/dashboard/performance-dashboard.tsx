@@ -46,21 +46,21 @@ const chartConfig = {
   },
 };
 
-export function PerformanceDashboard() {
+export function PerformanceDashboard({ dict }: { dict: any }) {
   return (
     <Card className="shadow-lg shadow-primary/10">
       <CardHeader>
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
           <TrendingUp className="w-6 h-6 text-primary" />
-          Performance Dashboard
+          {dict.title}
         </CardTitle>
         <CardDescription>
-          Track your content performance and audience engagement.
+          {dict.description}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <h4 className="font-headline text-lg mb-2">Weekly Engagement</h4>
+          <h4 className="font-headline text-lg mb-2">{dict.weeklyEngagement}</h4>
           <ChartContainer config={chartConfig} className="h-[250px] w-full">
             <LineChart
               data={engagementData}
@@ -87,7 +87,7 @@ export function PerformanceDashboard() {
           </ChartContainer>
         </div>
         <div>
-          <h4 className="font-headline text-lg mb-2">Traffic Sources</h4>
+          <h4 className="font-headline text-lg mb-2">{dict.trafficSources}</h4>
            <ChartContainer config={chartConfig} className="h-[250px] w-full">
             <BarChart data={trafficData} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid horizontal={false} stroke="hsl(var(--border) / 0.5)"/>

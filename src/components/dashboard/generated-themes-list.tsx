@@ -9,9 +9,10 @@ import { Copy, Check, ArrowRight } from "lucide-react";
 type GeneratedThemesListProps = {
   themes: string[];
   showAlignerButton?: boolean;
+  dict: any;
 };
 
-export function GeneratedThemesList({ themes, showAlignerButton = false }: GeneratedThemesListProps) {
+export function GeneratedThemesList({ themes, showAlignerButton = false, dict }: GeneratedThemesListProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const { toast } = useToast();
 
@@ -19,15 +20,15 @@ export function GeneratedThemesList({ themes, showAlignerButton = false }: Gener
     navigator.clipboard.writeText(theme).then(() => {
       setCopiedIndex(index);
       toast({
-        title: "Theme copied to clipboard",
+        title: dict.copySuccess,
       });
       setTimeout(() => setCopiedIndex(null), 2000);
     }).catch(err => {
       console.error("Failed to copy: ", err);
       toast({
         variant: "destructive",
-        title: "Failed to copy",
-        description: "Could not copy theme to clipboard.",
+        title: dict.copyErrorTitle,
+        description: dict.copyErrorDescription,
       });
     });
   };
@@ -59,7 +60,7 @@ export function GeneratedThemesList({ themes, showAlignerButton = false }: Gener
         <div className="flex justify-end pt-2">
             <Button asChild size="lg">
                 <Link href="/dashboard/content-aligner">
-                    Continue to Content Aligner
+                    {dict.continueButton}
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
             </Button>

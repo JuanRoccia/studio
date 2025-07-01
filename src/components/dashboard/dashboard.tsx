@@ -7,23 +7,23 @@ import { PerformanceDashboard } from "./performance-dashboard";
 import { ContentCalendar } from "./content-calendar";
 import { PromotionCards } from "./promotion-cards";
 
-export function Dashboard() {
+export function Dashboard({ dict }: { dict: any }) {
   return (
     <div className="grid gap-8 grid-cols-12">
       <div className="col-span-12">
-        <PerformanceDashboard />
+        <PerformanceDashboard dict={dict.dashboardPage.performanceDashboard} />
       </div>
       <div className="col-span-12">
-        <ConspiracyThemeGenerator />
+        <ConspiracyThemeGenerator dict={dict.dashboardPage.conspiracyThemeGenerator} sharedDict={dict.shared} />
       </div>
       <div className="col-span-12 lg:col-span-6 xl:col-span-5">
-         <TaskScheduler />
+         <TaskScheduler dict={dict.dashboardPage.taskScheduler} />
       </div>
       <div className="col-span-12 lg:col-span-6 xl:col-span-7">
-        <ContentCalendar />
+        <ContentCalendar dict={dict.dashboardPage.contentCalendar} />
       </div>
        <div className="col-span-12">
-        <PromotionCards />
+        <PromotionCards dict={dict.dashboardPage.promotionCards} />
       </div>
     </div>
   );

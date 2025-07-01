@@ -46,7 +46,7 @@ const formSchema = z.object({
     .min(10, "Target audience description is too short."),
 });
 
-export function PlatformContentAligner({ showPublisherButton = false }: { showPublisherButton?: boolean }) {
+export function PlatformContentAligner({ dict, sharedDict, showPublisherButton = false }: { dict: any, sharedDict: any, showPublisherButton?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AlignPlatformContentOutput | null>(
     null
@@ -69,15 +69,15 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       toast({
-        title: "Suggestion copied to clipboard",
+        title: sharedDict.toasts.copy_suggestion_success,
       });
       setTimeout(() => setCopied(false), 2000);
     }).catch(err => {
       console.error("Failed to copy: ", err);
       toast({
         variant: "destructive",
-        title: "Failed to copy",
-        description: "Could not copy suggestion to clipboard.",
+        title: sharedDict.toasts.copy_suggestion_error_title,
+        description: sharedDict.toasts.copy_suggestion_error_description,
       });
     });
   };
@@ -93,8 +93,8 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
       console.error(error);
       toast({
         variant: "destructive",
-        title: "Error Generating Content",
-        description: "There was an issue generating content. Please try again.",
+        title: sharedDict.toasts.error_generating_content_title,
+        description: sharedDict.toasts.error_generating_content_description,
       });
     } finally {
       setLoading(false);
@@ -106,10 +106,10 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
       <CardHeader>
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
           <Share2 className="w-6 h-6 text-primary" />
-          Platform Content Aligner
+          {dict.title}
         </CardTitle>
         <CardDescription>
-          Get AI-driven content suggestions tailored for each platform.
+          {dict.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -120,9 +120,9 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
               name="theme"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Conspiracy Theme</FormLabel>
+                  <FormLabel>{dict.form.themeLabel}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter the theme from the generator" {...field} />
+                    <Input placeholder={dict.form.themePlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -133,14 +133,14 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
               name="platform"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Platform</FormLabel>
+                  <FormLabel>{dict.form.platformLabel}</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a platform" />
+                        <SelectValue placeholder={dict.form.platformPlaceholder} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -158,10 +158,10 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
                 name="targetAudience"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Target Audience</FormLabel>
+                    <FormLabel>{dict.form.audienceLabel}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Describe your target audience"
+                        placeholder={dict.form.audiencePlaceholder}
                         {...field}
                       />
                     </FormControl>
@@ -174,10 +174,10 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Aligning...
+                  {dict.form.aligningButton}
                 </>
               ) : (
-                "Get Suggestion"
+                dict.form.submitButton
               )}
             </Button>
           </form>
@@ -188,7 +188,7 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
             <div className="space-y-4 bg-secondary/30 p-6 rounded-md">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-headline text-lg">Content Suggestion:</h3>
+                  <h3 className="font-headline text-lg">{dict.results.suggestionTitle}</h3>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -206,7 +206,7 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
                 <p className="text-muted-foreground break-words">{result.contentSuggestion}</p>
               </div>
               <div className="space-y-2 pt-2">
-                <h3 className="font-headline text-lg">Reasoning:</h3>
+                <h3 className="font-headline text-lg">{dict.results.reasoningTitle}</h3>
                 <p className="text-muted-foreground break-words">{result.reasoning}</p>
               </div>
             </div>
@@ -218,7 +218,7 @@ export function PlatformContentAligner({ showPublisherButton = false }: { showPu
                       pathname: '/dashboard/publisher',
                       query: { content: result.contentSuggestion, theme: form.getValues('theme') }
                     }}>
-                        Continue to Publisher
+                        {dict.results.continueButton}
                         <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                 </Button>

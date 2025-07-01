@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarDays } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export function ContentCalendar() {
+export function ContentCalendar({ dict }: { dict: any }) {
   const [date, setDate] = useState<Date | undefined>();
 
   useEffect(() => {
@@ -23,10 +23,10 @@ export function ContentCalendar() {
       <CardHeader>
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
           <CalendarDays className="w-6 h-6 text-primary" />
-          Content Calendar
+          {dict.title}
         </CardTitle>
         <CardDescription>
-          Visualize your content schedule and plan ahead.
+          {dict.description}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex justify-center">

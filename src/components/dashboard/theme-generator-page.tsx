@@ -55,6 +55,9 @@ const formSchema = z.object({
 });
 
 export function ThemeGeneratorPage({ dict }: { dict: any }) {
+  const pageDict = dict.themeGenerator;
+  const sharedDict = dict.shared;
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] =
     useState<GenerateConspiracyThemesOutput | null>(null);
@@ -105,9 +108,8 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "Error Generating Themes",
-        description:
-          "There was an issue generating conspiracy themes. Please try again.",
+        title: sharedDict.toasts.error_generating_themes_title,
+        description: sharedDict.toasts.error_generating_themes_description,
       });
     } finally {
       setLoading(false);
@@ -125,21 +127,21 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
         <CardHeader>
           <CardTitle className="font-headline text-2xl flex items-center gap-2">
             <Wand2 className="w-6 h-6 text-primary" />
-            {dict.title}
+            {pageDict.title}
           </CardTitle>
           <CardDescription>
-            {dict.description}
+            {pageDict.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-6 rounded-lg border border-dashed p-4 text-center flex flex-col items-center">
-            <h3 className="font-headline text-lg">{dict.inspiration.title}</h3>
+            <h3 className="font-headline text-lg">{pageDict.inspiration.title}</h3>
             <p className="text-muted-foreground text-sm mb-3 max-w-md">
-                {dict.inspiration.description}
+                {pageDict.inspiration.description}
             </p>
             <Button onClick={() => handleAnalyzeTrends()} disabled={loadingTrends}>
                 {loadingTrends ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                {dict.inspiration.button}
+                {pageDict.inspiration.button}
             </Button>
           </div>
 
@@ -147,7 +149,7 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
             <div className="space-y-4 mb-6">
               <div className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="animate-spin h-4 w-4" />
-                  <span>{dict.inspiration.loading}</span>
+                  <span>{pageDict.inspiration.loading}</span>
               </div>
               <Skeleton className="h-40 w-full" />
             </div>
@@ -156,12 +158,12 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
               <div className="mb-6">
                   <Alert className="border-primary/20">
                      <Info className="h-4 w-4" />
-                      <AlertTitle className="font-headline">{dict.trendAnalysis.title}</AlertTitle>
+                      <AlertTitle className="font-headline">{pageDict.trendAnalysis.title}</AlertTitle>
                       <AlertDescription className="space-y-4 pt-2">
                         <p className="text-foreground/80 break-words">{trends.summary}</p>
                         
                         <div className="space-y-2">
-                          <Label>{dict.trendAnalysis.suggestedTopics}</Label>
+                          <Label>{pageDict.trendAnalysis.suggestedTopics}</Label>
                           <div className="flex flex-wrap gap-2">
                             {trends.suggestedTopics.map((topic, i) => (
                               <Button 
@@ -180,7 +182,7 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
                         </div>
                         
                         <div className="space-y-2">
-                          <Label>{dict.trendAnalysis.suggestedKeywords}</Label>
+                          <Label>{pageDict.trendAnalysis.suggestedKeywords}</Label>
                           <div className="flex flex-wrap gap-2">
                             {trends.suggestedKeywords.map((keyword, i) => (
                                <Button 
@@ -200,7 +202,7 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
 
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2">
                             <Switch id="align-trends" checked={alignWithTrends} onCheckedChange={setAlignWithTrends} />
-                            <Label htmlFor="align-trends" className="cursor-pointer text-sm">{dict.trendAnalysis.alignSwitch}</Label>
+                            <Label htmlFor="align-trends" className="cursor-pointer text-sm">{pageDict.trendAnalysis.alignSwitch}</Label>
                         </div>
                          {alignWithTrends && <div className="flex flex-wrap gap-2">
                             {trends.trends.map(t => <Badge key={t} variant="secondary">{t}</Badge>)}
@@ -217,10 +219,10 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
                 name="currentEvents"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{dict.form.currentEventsLabel}</FormLabel>
+                    <FormLabel>{pageDict.form.currentEventsLabel}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder={dict.form.currentEventsPlaceholder}
+                        placeholder={pageDict.form.currentEventsPlaceholder}
                         {...field}
                         rows={5}
                       />
@@ -234,10 +236,10 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
                 name="keywords"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{dict.form.keywordsLabel}</FormLabel>
+                    <FormLabel>{pageDict.form.keywordsLabel}</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder={dict.form.keywordsPlaceholder}
+                        placeholder={pageDict.form.keywordsPlaceholder}
                         {...field} 
                       />
                     </FormControl>
@@ -252,21 +254,21 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
                   name="tone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{dict.form.toneLabel}</FormLabel>
+                      <FormLabel>{pageDict.form.toneLabel}</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={dict.form.tonePlaceholder} />
+                            <SelectValue placeholder={pageDict.form.tonePlaceholder} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Serious">{dict.form.tones.serious}</SelectItem>
-                          <SelectItem value="Satirical">{dict.form.tones.satirical}</SelectItem>
-                          <SelectItem value="Investigative">{dict.form.tones.investigative}</SelectItem>
-                          <SelectItem value="Sensationalist">{dict.form.tones.sensationalist}</SelectItem>
+                          <SelectItem value="Serious">{pageDict.form.tones.serious}</SelectItem>
+                          <SelectItem value="Satirical">{pageDict.form.tones.satirical}</SelectItem>
+                          <SelectItem value="Investigative">{pageDict.form.tones.investigative}</SelectItem>
+                          <SelectItem value="Sensationalist">{pageDict.form.tones.sensationalist}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -278,21 +280,21 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
                   name="platform"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{dict.form.formatLabel}</FormLabel>
+                      <FormLabel>{pageDict.form.formatLabel}</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={dict.form.formatPlaceholder} />
+                            <SelectValue placeholder={pageDict.form.formatPlaceholder} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="General">{dict.form.formats.general}</SelectItem>
-                          <SelectItem value="Blog Post">{dict.form.formats.blog}</SelectItem>
-                          <SelectItem value="Twitter Thread">{dict.form.formats.twitter}</SelectItem>
-                          <SelectItem value="Video Script">{dict.form.formats.video}</SelectItem>
+                          <SelectItem value="General">{pageDict.form.formats.general}</SelectItem>
+                          <SelectItem value="Blog Post">{pageDict.form.formats.blog}</SelectItem>
+                          <SelectItem value="Twitter Thread">{pageDict.form.formats.twitter}</SelectItem>
+                          <SelectItem value="Video Script">{pageDict.form.formats.video}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -304,10 +306,10 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {dict.form.generatingButton}
+                    {pageDict.form.generatingButton}
                   </>
                 ) : (
-                  dict.form.submitButton
+                  pageDict.form.submitButton
                 )}
               </Button>
             </form>
@@ -320,7 +322,7 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
             <CardContent className="pt-6">
                 <div className="flex items-center justify-center p-8 rounded-lg border-dashed border-2 bg-card">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-4 text-muted-foreground">{dict.results.loading}</p>
+                    <p className="ml-4 text-muted-foreground">{pageDict.results.loading}</p>
                 </div>
             </CardContent>
         </Card>
@@ -329,10 +331,10 @@ export function ThemeGeneratorPage({ dict }: { dict: any }) {
       {result && (
         <Card className="shadow-lg shadow-primary/10">
           <CardHeader>
-            <CardTitle className="font-headline">{dict.results.title}</CardTitle>
+            <CardTitle className="font-headline">{pageDict.results.title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <GeneratedThemesList themes={result.themes} showAlignerButton={true} />
+            <GeneratedThemesList themes={result.themes} showAlignerButton={true} dict={sharedDict.generatedThemesList} />
           </CardContent>
         </Card>
       )}

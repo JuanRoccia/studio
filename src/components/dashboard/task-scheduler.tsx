@@ -63,16 +63,16 @@ const platformIcons: { [key in Task["platform"]]: ComponentType<{ className?: st
   TikTok: Clapperboard,
 };
 
-export function TaskScheduler() {
+export function TaskScheduler({ dict }: { dict: any }) {
   return (
     <Card className="h-full shadow-lg shadow-primary/10">
       <CardHeader>
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
           <CalendarClock className="w-6 h-6 text-primary" />
-          Daily Tasks & Optimal Times
+          {dict.title}
         </CardTitle>
         <CardDescription>
-          Your automated schedule for maximum impact.
+          {dict.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
