@@ -1,22 +1,22 @@
 // src/app/api/twitter/auth/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getTwitterClient } from '@/lib/twitter';
+import { generateAuthLink } from '@/lib/twitter';
 import { cookies } from 'next/headers';
 
 export async function GET(req: NextRequest) {
   try {
-    const { authUrl, codeVerifier, state } = await getTwitterClient();
+    const { authUrl, codeVerifier, state } = await generateAuthLink();
     
     // Store codeVerifier and state in cookies to verify them in the callback
     cookies().set('twitter_code_verifier', codeVerifier, {
       httpOnly: true,
-      secure: true, // Forcing secure cookie for HTTPS dev environment
+      secure: true,
       path: '/',
       maxAge: 60 * 15, // 15 minutes
     });
     cookies().set('twitter_state', state, {
       httpOnly: true,
-      secure: true, // Forcing secure cookie for HTTPS dev environment
+      secure: true,
       path: '/',
       maxAge: 60 * 15, // 15 minutes
     });

@@ -1,7 +1,7 @@
 // src/app/api/twitter/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getTwitterClient } from '@/lib/twitter';
 import { cookies } from 'next/headers';
+import { getTwitterApiClass } from '@/lib/twitter-client';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,12 +16,21 @@ export async function GET(req: NextRequest) {
       return new Response('Invalid request: state mismatch or missing parameters.', { status: 400 });
     }
 
-    const { client } = await getTwitterClient();
+    const TwitterApi = await getTwitterApiClass();
+    const clientId = process.env.TWITTER_CLIENT_ID;
+    const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+    if (!clientId || !clientSecret || !baseUrl) {
+      throw new Error('Missing Twitter environment variables. Please check your .env file.');
+    }
+
+    const client = new TwitterApi({ clientId, clientSecret });
     
     const { accessToken, refreshToken } = await client.loginWithPKCE({
       code,
       codeVerifier: storedCodeVerifier,
-      redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitter/callback`,
+      redirectUri: `${baseUrl}/api/twitter/callback`,
     });
 
     const oneDay = 24 * 60 * 60 * 1000;
@@ -29,14 +38,14 @@ export async function GET(req: NextRequest) {
     // Store the tokens securely in httpOnly cookies
     cookies().set('twitter_access_token', accessToken, {
       httpOnly: true,
-      secure: true, // Forcing secure cookie for HTTPS dev environment
+      secure: true,
       path: '/',
       expires: Date.now() + 7 * oneDay, // 7 days
     });
     if (refreshToken) {
       cookies().set('twitter_refresh_token', refreshToken, {
         httpOnly: true,
-        secure: true, // Forcing secure cookie for HTTPS dev environment
+        secure: true,
         path: '/',
         expires: Date.now() + 30 * oneDay, // 30 days
       });

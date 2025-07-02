@@ -1,11 +1,12 @@
 // src/lib/twitter.ts
 import { cookies } from 'next/headers';
+import { getTwitterApiClass } from './twitter-client';
 
 /**
- * Generates an authentication client and URL for the Twitter OAuth 2.0 PKCE flow.
+ * Generates an authentication URL for the Twitter OAuth 2.0 PKCE flow.
  */
-export async function getTwitterClient() {
-  const { TwitterApi } = await import('twitter-api-v2');
+export async function generateAuthLink() {
+  const TwitterApi = await getTwitterApiClass();
   const clientId = process.env.TWITTER_CLIENT_ID;
   const clientSecret = process.env.TWITTER_CLIENT_SECRET;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
@@ -24,13 +25,13 @@ export async function getTwitterClient() {
     scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
   });
 
-  return { client, authUrl: url, codeVerifier, state };
+  return { authUrl: url, codeVerifier, state };
 }
 
 /**
  * Retrieves the user's tokens from cookies.
  */
-export function getTokens(): Partial<import('twitter-api-v2').TwitterApiTokens> {
+export function getTokens(): { accessToken?: string; refreshToken?: string; } {
   const cookieStore = cookies();
   const accessToken = cookieStore.get('twitter_access_token')?.value;
   const refreshToken = cookieStore.get('twitter_refresh_token')?.value;
@@ -46,7 +47,7 @@ export function getTokens(): Partial<import('twitter-api-v2').TwitterApiTokens> 
  * @returns An object containing the authenticated client and refreshed tokens if any.
  */
 export async function getAuthenticatedTwitterClient(accessToken?: string, refreshToken?: string) {
-    const { TwitterApi } = await import('twitter-api-v2');
+    const TwitterApi = await getTwitterApiClass();
 
     if (!accessToken || !refreshToken) {
         throw new Error('No access token or refresh token provided.');
