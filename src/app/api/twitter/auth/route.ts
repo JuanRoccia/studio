@@ -5,27 +5,32 @@ import { cookies } from 'next/headers';
 
 export async function GET(req: NextRequest) {
   try {
-    const { authUrl, codeVerifier, state } = await generateAuthLink();
+    const { url, codeVerifier, state } = await generateAuthLink();
     
     // Store codeVerifier and state in cookies to verify them in the callback
-    cookies().set('twitter_code_verifier', codeVerifier, {
+    const cookieOptions = {
       httpOnly: true,
-      secure: true,
+      secure: true, // Always true for cloud environments with https
       path: '/',
       maxAge: 60 * 15, // 15 minutes
-    });
-    cookies().set('twitter_state', state, {
-      httpOnly: true,
-      secure: true,
-      path: '/',
-      maxAge: 60 * 15, // 15 minutes
-    });
+      sameSite: 'lax' as const,
+    };
 
-    return NextResponse.redirect(authUrl);
+    cookies().set('twitter_code_verifier', codeVerifier, cookieOptions);
+    cookies().set('twitter_state', state, cookieOptions);
+
+    return NextResponse.redirect(url);
 
   } catch (error) {
     console.error("Error in Twitter auth route:", error);
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
-    return new NextResponse(`Authentication failed: ${errorMessage}`, { status: 500 });
+    
+    // Redirect back to dashboard with an error message
+    const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
+    const redirectUrl = new URL(`/${lang}/dashboard/publisher`, req.url);
+    redirectUrl.searchParams.set('error', 'twitter_auth_failed');
+    redirectUrl.searchParams.set('details', errorMessage);
+    
+    return NextResponse.redirect(redirectUrl);
   }
 }

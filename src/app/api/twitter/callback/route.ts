@@ -4,51 +4,57 @@ import { cookies } from 'next/headers';
 import { loginWithPKCE } from '@/lib/twitter';
 
 export async function GET(req: NextRequest) {
+  const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
+  const redirectUrl = new URL(`/${lang}/dashboard/publisher`, req.url);
+
   try {
     const { searchParams } = new URL(req.url);
     const state = searchParams.get('state');
     const code = searchParams.get('code');
+    const error = searchParams.get('error');
 
+    if (error) {
+      console.error('Twitter authorization error:', error);
+      redirectUrl.searchParams.set('error', 'twitter_auth_denied');
+      redirectUrl.searchParams.set('details', `Twitter reported an error: ${error}`);
+      return NextResponse.redirect(redirectUrl);
+    }
+    
     const storedState = cookies().get('twitter_state')?.value;
     const storedCodeVerifier = cookies().get('twitter_code_verifier')?.value;
 
     if (!state || !code || !storedState || !storedCodeVerifier || state !== storedState) {
-      return new Response('Invalid request: state mismatch or missing parameters.', { status: 400 });
+      redirectUrl.searchParams.set('error', 'invalid_request');
+      redirectUrl.searchParams.set('details', 'State mismatch or missing parameters. Please try again.');
+      return NextResponse.redirect(redirectUrl);
     }
 
     const { accessToken, refreshToken } = await loginWithPKCE(code, storedCodeVerifier);
-
-    const oneDay = 24 * 60 * 60 * 1000;
     
-    // Store the tokens securely in httpOnly cookies
-    cookies().set('twitter_access_token', accessToken, {
-      httpOnly: true,
-      secure: true,
-      path: '/',
-      expires: Date.now() + 7 * oneDay, // 7 days
-    });
-    if (refreshToken) {
-      cookies().set('twitter_refresh_token', refreshToken, {
+    const permanentCookieOptions = {
         httpOnly: true,
-        secure: true,
+        secure: true, // Always true for cloud environments with https
         path: '/',
-        expires: Date.now() + 30 * oneDay, // 30 days
-      });
+        maxAge: 60 * 60 * 24 * 90, // 90 days
+        sameSite: 'lax' as const,
+    };
+    
+    cookies().set('twitter_access_token', accessToken, permanentCookieOptions);
+    if (refreshToken) {
+      cookies().set('twitter_refresh_token', refreshToken, permanentCookieOptions);
     }
 
-    // Clean up temporary cookies
     cookies().delete('twitter_state');
     cookies().delete('twitter_code_verifier');
     
-    // Get the language from the last visited path
-    const lang = req.headers.get('referer')?.split('/')[3] || 'en';
-
-    // Redirect user back to the publisher page
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/${lang}/dashboard/publisher`);
+    redirectUrl.searchParams.set('success', 'twitter_connected');
+    return NextResponse.redirect(redirectUrl);
   
   } catch (error) {
     console.error("Twitter callback error:", error);
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
-    return new NextResponse(`Authentication callback failed: ${errorMessage}`, { status: 500 });
+    redirectUrl.searchParams.set('error', 'callback_failed');
+    redirectUrl.searchParams.set('details', errorMessage);
+    return NextResponse.redirect(redirectUrl);
   }
 }

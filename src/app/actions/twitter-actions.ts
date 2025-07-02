@@ -1,58 +1,111 @@
 // src/app/actions/twitter-actions.ts
 'use server';
 
-import { cookies } from 'next/headers';
-import { getAuthenticatedTwitterClient, getTokens } from '@/lib/twitter';
+import { getTokens, getAuthenticatedTwitterClient, clearTokens } from '@/lib/twitter';
 
 export async function checkTwitterConnection() {
-  const tokens = await getTokens();
-  return { isConnected: !!tokens.accessToken };
+  try {
+    const tokens = await getTokens();
+    if (!tokens?.accessToken) {
+      return { isConnected: false };
+    }
+
+    const { client } = await getAuthenticatedTwitterClient();
+
+    const user = await client.v2.me();
+    return { 
+      isConnected: true,
+      user: {
+        id: user.data.id,
+        username: user.data.username,
+        name: user.data.name,
+      }
+    };
+  } catch (error) {
+    console.error('Error checking Twitter connection status:', error);
+    return { 
+      isConnected: false, 
+      error: error instanceof Error ? error.message : 'Failed to verify connection.' 
+    };
+  }
 }
 
 export async function disconnectTwitter() {
-  cookies().delete('twitter_access_token');
-  cookies().delete('twitter_refresh_token');
-  return { isConnected: false };
+  try {
+    await clearTokens();
+    return { success: true };
+  } catch (error) {
+    console.error('Error disconnecting from Twitter:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to disconnect.' 
+    };
+  }
 }
 
-function cleanTweetText(text: string): string {
-  // Removes the "X/ " prefix from thread parts, e.g., "1/ This is a tweet" -> "This is a tweet"
-  return text.replace(/^\d+\/\s*/, '').trim();
+export async function publishToTwitter(tweets: string[]) {
+  if (!tweets || tweets.length === 0 || !tweets[0].trim()) {
+    return { success: false, error: 'Tweet content cannot be empty.' };
+  }
+
+  try {
+    const { client } = await getAuthenticatedTwitterClient();
+    
+    let result;
+    const cleanedTweets = tweets.map(t => t.replace(/^\d+\/\s*/, '').trim());
+
+    if (cleanedTweets.length > 1) {
+        result = await client.v2.tweetThread(cleanedTweets);
+    } else {
+        const content = cleanedTweets[0];
+        if (content.length > 280) {
+            return { success: false, error: 'Tweet content exceeds 280 characters limit.' };
+        }
+        result = await client.v2.tweet(content);
+    }
+    
+    const tweetId = Array.isArray(result) ? result[0].data.id : result.data.id;
+    const username = (await client.v2.me()).data.username;
+
+    return { 
+      success: true, 
+      tweetId: tweetId,
+      message: tweets.length > 1 ? 'Thread published successfully!' : 'Tweet published successfully!',
+      tweetUrl: `https://twitter.com/${username}/status/${tweetId}`
+    };
+  } catch (error) {
+    console.error('Error publishing to Twitter:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to publish tweet.' 
+    };
+  }
 }
 
-export async function publishToTwitter({ tweets }: { tweets: string[] }) {
-    const tokens = await getTokens();
-    if (!tokens.accessToken) {
-        throw new Error('User not authenticated with Twitter.');
-    }
+export async function getTwitterUser() {
+  try {
+    const { client } = await getAuthenticatedTwitterClient();
 
-    const { client: userClient, refreshed } = await getAuthenticatedTwitterClient(tokens.accessToken, tokens.refreshToken);
-
-    // If tokens were refreshed, update the cookies
-    if (refreshed && refreshed.accessToken && refreshed.refreshToken) {
-        const oneDay = 24 * 60 * 60 * 1000;
-        cookies().set('twitter_access_token', refreshed.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', expires: Date.now() + 7 * oneDay });
-        cookies().set('twitter_refresh_token', refreshed.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', expires: Date.now() + 30 * oneDay });
-    }
-
-    try {
-        if (tweets.length === 0) {
-            throw new Error('No content to publish.');
-        }
-
-        const cleanedTweets = tweets.map(cleanTweetText).filter(t => t.length > 0);
-
-        if (cleanedTweets.length > 1) {
-            // It's a thread
-            await userClient.v2.tweetThread(cleanedTweets);
-        } else {
-            // It's a single tweet
-            await userClient.v2.tweet(cleanedTweets[0]);
-        }
-        return { success: true, message: 'Content published successfully on Twitter.' };
-    } catch (error: any) {
-        console.error('Failed to publish to Twitter:', error);
-        const errorMessage = error.data?.detail || error.message || 'An unknown error occurred.';
-        return { success: false, message: `Failed to publish: ${errorMessage}` };
-    }
+    const user = await client.v2.me({
+      'user.fields': ['public_metrics', 'verified', 'profile_image_url']
+    });
+    
+    return { 
+      success: true, 
+      user: {
+        id: user.data.id,
+        username: user.data.username,
+        name: user.data.name,
+        verified: user.data.verified,
+        profileImageUrl: user.data.profile_image_url,
+        publicMetrics: user.data.public_metrics,
+      }
+    };
+  } catch (error) {
+    console.error('Error getting Twitter user:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to get user info' 
+    };
+  }
 }

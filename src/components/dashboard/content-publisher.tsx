@@ -2,16 +2,17 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState, useRef, useTransition } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Send, Wand2, Image as ImageIcon, Search, Repeat, Upload, CalendarClock, Power, Twitter } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Send, Wand2, Image as ImageIcon, Search, Repeat, Upload, CalendarClock, Power, Twitter, CheckCircle, AlertCircle, User, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
-import { Badge } from '../ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { expandToThread, type ExpandToThreadInput } from '@/ai/flows/expand-to-thread';
 import { analyzeTrends, type AnalyzeTrendsOutput } from '@/ai/flows/analyze-trends';
@@ -21,8 +22,21 @@ import { refineContent } from '@/ai/flows/refine-content';
 import { generateImage } from '@/ai/flows/generate-image';
 import { checkTwitterConnection, disconnectTwitter, publishToTwitter } from '@/app/actions/twitter-actions';
 
+interface TwitterUser {
+  id: string;
+  username: string;
+  name: string;
+}
+
+interface ConnectionStatus {
+  isConnected: boolean;
+  user?: TwitterUser;
+  error?: string;
+}
+
 export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dict: any, sharedDict: any }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { toast } = useToast();
   
   const initialContent = searchParams.get('content') || '';
@@ -44,19 +58,59 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [isTwitterConnected, setIsTwitterConnected] = useState(false);
-  const [isConnectionPending, startConnectionCheck] = useTransition();
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus | null>(null);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+  const [publishResult, setPublishResult] = useState<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    tweetUrl?: string;
+  } | null>(null);
 
+  const isThreadComplete = stageIndex >= narrativeStages.length - 1;
 
-  useEffect(() => {
-    startConnectionCheck(async () => {
-      const { isConnected } = await checkTwitterConnection();
-      setIsTwitterConnected(isConnected);
-    });
+  const checkConnection = useCallback(async () => {
+    try {
+      setIsCheckingConnection(true);
+      const result = await checkTwitterConnection();
+      setConnectionStatus(result);
+    } catch (error) {
+      console.error('Error checking connection:', error);
+      setConnectionStatus({
+        isConnected: false,
+        error: 'Failed to check Twitter connection'
+      });
+    } finally {
+      setIsCheckingConnection(false);
+    }
   }, []);
 
+  useEffect(() => {
+    checkConnection();
+  }, [checkConnection]);
+  
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const error = searchParams.get('error');
+    const details = searchParams.get('details');
 
-  const isThreadComplete = stageIndex >= narrativeStages.length -1;
+    if (success === 'twitter_connected') {
+      toast({
+        title: "Connection Successful!",
+        description: "Your Twitter account has been connected.",
+      });
+      checkConnection();
+      router.replace(`/${lang}/dashboard/publisher`);
+    } else if (error) {
+      toast({
+        variant: 'destructive',
+        title: "Connection Failed",
+        description: decodeURIComponent(details || "An unknown error occurred. Please try again."),
+      });
+      router.replace(`/${lang}/dashboard/publisher`);
+    }
+  }, [searchParams, lang, router, toast, checkConnection]);
+
 
   useEffect(() => {
     setContent(initialContent);
@@ -145,7 +199,6 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
     }
   };
 
-
   const handleCheckTrends = async () => {
     if (!initialTheme) return;
     setIsCheckingTrends(true);
@@ -170,23 +223,58 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   };
 
   const handlePublish = async () => {
-    setIsPublishing(true);
-    toast({ title: sharedDict.toasts.publishing_title, description: sharedDict.toasts.publishing_description });
-    
-    const tweetsToPublish = threadParts.length > 1 ? threadParts : [content];
-    const result = await publishToTwitter({ tweets: tweetsToPublish });
-
-    if (result.success) {
-      toast({ title: sharedDict.toasts.publish_success_title, description: result.message });
-    } else {
-      toast({ variant: 'destructive', title: sharedDict.toasts.publish_error_title, description: result.message });
+    if (!content.trim()) {
+      setPublishResult({
+        success: false,
+        error: 'Please enter some content to publish'
+      });
+      return;
     }
-    setIsPublishing(false);
-  }
+
+    if (!connectionStatus?.isConnected) {
+      setPublishResult({
+        success: false,
+        error: 'Please connect your Twitter account first'
+      });
+      return;
+    }
+
+    try {
+      setIsPublishing(true);
+      setPublishResult(null);
+      toast({ title: sharedDict.toasts.publishing_title, description: sharedDict.toasts.publishing_description });
+      
+      const tweetsToPublish = threadParts.length > 1 ? threadParts : [content];
+      const result = await publishToTwitter(tweetsToPublish);
+      setPublishResult(result);
+      
+      if (result.success) {
+        setContent('');
+        setThreadParts([]);
+        setStageIndex(0);
+        toast({ title: sharedDict.toasts.publish_success_title, description: result.message });
+      } else {
+        toast({ variant: 'destructive', title: sharedDict.toasts.publish_error_title, description: result.error });
+      }
+    } catch (error) {
+      console.error('Error publishing:', error);
+      setPublishResult({
+        success: false,
+        error: 'Failed to publish content'
+      });
+      toast({ variant: 'destructive', title: sharedDict.toasts.publish_error_title, description: 'Failed to publish content' });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleConnectTwitter = () => {
+    window.location.href = '/api/twitter/auth';
+  };
 
   const handleDisconnect = async () => {
     await disconnectTwitter();
-    setIsTwitterConnected(false);
+    setConnectionStatus({ isConnected: false });
     toast({ title: dict.publish.disconnect_success_title });
   };
 
@@ -209,10 +297,9 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
             language: lang as 'en' | 'es-AR',
         });
         setContent(result.refinedContent);
-        // If content was refined, reset threadParts to reflect the new single content
         setThreadParts([result.refinedContent]);
         setStageIndex(0);
-        setRefineRequest(''); // Clear input after successful refinement
+        setRefineRequest('');
         toast({ title: sharedDict.toasts.refine_success });
     } catch (error) {
         console.error(error);
@@ -222,187 +309,288 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
     }
   }
 
+  const getCharacterCount = () => content.length;
+  const isOverLimit = threadParts.length > 1 ? false : getCharacterCount() > 280;
   const progressPercentage = (stageIndex / (narrativeStages.length - 1)) * 100;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 flex flex-col gap-8">
-        <Card className="shadow-lg shadow-primary/10">
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl flex items-center gap-2">
-              <Send className="w-6 h-6 text-primary" />
-              {dict.title}
-            </CardTitle>
-            <CardDescription>
-              {dict.description}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea 
-              value={content}
-              onChange={(e) => {
-                setContent(e.target.value);
-                // If user edits content manually, reset the thread tracking
-                setThreadParts([e.target.value]);
-                setStageIndex(0);
-              }}
-              rows={12}
-              placeholder={dict.contentPlaceholder}
-              className="text-base"
-            />
-            <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap gap-2">
-                    <Button onClick={handleGenerateThread} disabled={isGeneratingThread || isThreadComplete || isRefining || isGeneratingImage}>
-                        {isGeneratingThread ? <Loader2 className="animate-spin" /> : <Repeat />}
-                        {isThreadComplete ? dict.buttons.threadComplete : dict.buttons.expandThread}
-                    </Button>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept="image/png, image/jpeg, image/webp"
-                    />
-                    <Button onClick={handleGenerateImage} disabled={isGeneratingImage || isRefining}>
-                        {isGeneratingImage ? <Loader2 className="animate-spin" /> : <ImageIcon />}
-                        {dict.buttons.generateImage}
-                    </Button>
-                    <Button onClick={handleUploadClick} variant="outline" disabled={isGeneratingImage || isRefining}>
-                        <Upload />
-                        {dict.buttons.uploadImage}
-                    </Button>
-                </div>
-
-                <div className="flex flex-wrap gap-2 items-center border-t pt-4">
-                    <Input 
-                        value={refineRequest}
-                        onChange={(e) => setRefineRequest(e.target.value)}
-                        placeholder={dict.refine.inputPlaceholder}
-                        className="flex-1 min-w-[200px]"
-                        disabled={isRefining || isGeneratingImage}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !isRefining && refineRequest) {
-                            handleRefineContent();
-                          }
-                        }}
-                    />
-                    <Button onClick={handleRefineContent} disabled={isRefining || !refineRequest || isGeneratingImage}>
-                        {isRefining ? <Loader2 className="animate-spin" /> : <Wand2 />}
-                        {dict.refine.buttonText}
-                    </Button>
-                </div>
-
-                {threadParts.length > 1 && (
-                    <div className="space-y-2 pt-4 border-t">
-                        <div className="flex justify-between items-center text-xs text-muted-foreground">
-                            <span>{dict.narrativeProgress.title}</span>
-                            <span>{isThreadComplete ? dict.narrativeProgress.complete : narrativeStages[stageIndex]}</span>
-                        </div>
-                        <Progress value={progressPercentage} className="w-full h-2" />
-                    </div>
-                )}
+    <div className="space-y-6">
+      <Card className="shadow-lg shadow-primary/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Twitter className="h-5 w-5" />
+            {dict.publish.connection_title || "Twitter Connection"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isCheckingConnection ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="ml-2">Checking Twitter connection...</span>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-lg shadow-primary/10">
-            <CardHeader>
-                <CardTitle className="font-headline text-xl">{dict.generatedImage.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {isGeneratingImage && <Skeleton className="w-full aspect-video rounded-md" />}
-                {generatedImage && !isGeneratingImage && (
-                     <div className="relative aspect-video rounded-md overflow-hidden border">
-                        <Image src={generatedImage} alt={dict.generatedImage.altText} layout="fill" objectFit="cover" data-ai-hint="generated content" />
-                     </div>
-                )}
-                {!generatedImage && !isGeneratingImage && (
-                    <div className="flex items-center justify-center aspect-video rounded-md border border-dashed bg-secondary/50">
-                        <p className="text-muted-foreground">{dict.generatedImage.placeholder}</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-      </div>
-
-      <div className="lg:col-span-1 flex flex-col gap-8">
-        <Card className="shadow-lg shadow-primary/10">
-          <CardHeader>
-            <CardTitle className="font-headline text-xl flex items-center gap-2">
-                <Search />
-                {dict.trendAnalysis.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={handleCheckTrends} disabled={isCheckingTrends || !initialTheme} className="w-full justify-start text-left">
-                {isCheckingTrends ? <Loader2 className="animate-spin" /> : <Wand2 />}
-                <span className="truncate">{dict.trendAnalysis.buttonText.replace('{topic}', initialTheme || dict.trendAnalysis.buttonDefaultText)}</span>
-            </Button>
-             {isCheckingTrends && <Skeleton className="h-20 w-full" />}
-             {trends && !isCheckingTrends && (
-                <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">{dict.trendAnalysis.relatedHashtags}</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {trends.trends.map(trend => <Badge key={trend} variant="secondary">{trend}</Badge>)}
-                    </div>
-                    <p className="text-xs text-muted-foreground pt-2 break-words">{trends.summary}</p>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-lg shadow-primary/10 bg-primary/5">
-            <CardHeader>
-                <CardTitle className="font-headline text-xl">{dict.publish.title}</CardTitle>
-                 {isConnectionPending ? (
-                    <Skeleton className="h-5 w-32 mt-1" />
-                 ) : isTwitterConnected ? (
-                    <CardDescription className="flex items-center gap-2 text-green-400">
-                        <Twitter className="w-4 h-4" />
-                        {dict.publish.connected_status}
-                    </CardDescription>
-                 ) : (
-                    <CardDescription>{dict.publish.description}</CardDescription>
-                 )}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-                 {isConnectionPending ? (
-                    <Skeleton className="h-10 w-full" />
-                ) : isTwitterConnected ? (
-                  <>
-                    <Button onClick={handlePublish} disabled={isPublishing || !content} className="w-full" size="lg">
-                        {isPublishing ? <Loader2 className="animate-spin" /> : <Send />}
-                        {dict.publish.buttonText}
-                    </Button>
-                     <Button onClick={handleDisconnect} variant="destructive" size="sm">
-                        <Power className="w-4 h-4" />
-                        {dict.publish.disconnect_button}
-                    </Button>
-                  </>
-                 ) : (
-                    <Button asChild size="lg">
-                      <Link href="/api/twitter/auth">
-                        <Twitter />
-                        {dict.publish.connect_button}
-                      </Link>
-                    </Button>
-                )}
-                
-                <Separator className='my-2' />
-
-                <Button asChild variant="outline" size="lg" disabled={!isTwitterConnected}>
-                    <Link href={{
-                      pathname: `/${lang}/dashboard/scheduler`,
-                      query: { 
-                        content: content, 
-                        theme: initialTheme, 
-                        image: generatedImage || ''
-                      }
-                    }}>
-                        <CalendarClock />
-                        {dict.publish.scheduleButton}
-                    </Link>
+          ) : connectionStatus?.isConnected ? (
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <span className="text-sm">Connected as</span>
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  @{connectionStatus.user?.username}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={checkConnection} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={isCheckingConnection}
+                >
+                  {isCheckingConnection ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                  Refresh
                 </Button>
+                <Button onClick={handleDisconnect} variant="destructive" size="sm">
+                  <Power className="w-4 h-4" />
+                  {dict.publish.disconnect_button}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-red-500">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">Not connected to Twitter</span>
+              </div>
+              
+              {connectionStatus?.error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {connectionStatus.error}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <Button onClick={handleConnectTwitter} className="w-full">
+                <Twitter className="mr-2 h-4 w-4" />
+                {dict.publish.connect_button}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 flex flex-col gap-8">
+          <Card className="shadow-lg shadow-primary/10">
+            <CardHeader>
+              <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                <Send className="w-6 h-6 text-primary" />
+                {dict.title}
+              </CardTitle>
+              <CardDescription>
+                {dict.description}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Textarea 
+                  value={content}
+                  onChange={(e) => {
+                    setContent(e.target.value);
+                    setThreadParts([e.target.value]);
+                    setStageIndex(0);
+                  }}
+                  rows={12}
+                  placeholder={dict.contentPlaceholder}
+                  className={`text-base resize-none ${isOverLimit ? 'border-red-500' : ''}`}
+                />
+                
+                <div className="flex justify-between items-center text-sm">
+                  <span className={`${isOverLimit ? 'text-red-500' : 'text-muted-foreground'}`}>
+                    {threadParts.length > 1 ? `${threadParts.length} tweets in thread` : `${getCharacterCount()}/280 characters`}
+                  </span>
+                  
+                  <Button
+                    onClick={handlePublish}
+                    disabled={!connectionStatus?.isConnected || !content.trim() || isOverLimit || isPublishing}
+                    size="sm"
+                  >
+                    {isPublishing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        {threadParts.length > 1 ? "Publish Thread" : "Publish Tweet"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {publishResult && (
+                <Alert variant={publishResult.success ? "default" : "destructive"}>
+                  {publishResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                  <AlertDescription>
+                    {publishResult.success ? (
+                      <div className="space-y-1">
+                        <p>{publishResult.message}</p>
+                        {publishResult.tweetUrl && (
+                          <a href={publishResult.tweetUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 text-xs">
+                            View on Twitter →
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      publishResult.error
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="flex flex-col gap-4 pt-4 border-t">
+                  <div className="flex flex-wrap gap-2">
+                      <Button onClick={handleGenerateThread} disabled={!connectionStatus?.isConnected || isGeneratingThread || isThreadComplete || isRefining || isGeneratingImage}>
+                          {isGeneratingThread ? <Loader2 className="animate-spin" /> : <Repeat />}
+                          {isThreadComplete ? dict.buttons.threadComplete : dict.buttons.expandThread}
+                      </Button>
+                      <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          className="hidden"
+                          accept="image/png, image/jpeg, image/webp"
+                      />
+                      <Button onClick={handleGenerateImage} disabled={!connectionStatus?.isConnected || isGeneratingImage || isRefining}>
+                          {isGeneratingImage ? <Loader2 className="animate-spin" /> : <ImageIcon />}
+                          {dict.buttons.generateImage}
+                      </Button>
+                      <Button onClick={handleUploadClick} variant="outline" disabled={!connectionStatus?.isConnected || isGeneratingImage || isRefining}>
+                          <Upload />
+                          {dict.buttons.uploadImage}
+                      </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 items-center border-t pt-4">
+                      <Input 
+                          value={refineRequest}
+                          onChange={(e) => setRefineRequest(e.target.value)}
+                          placeholder={dict.refine.inputPlaceholder}
+                          className="flex-1 min-w-[200px]"
+                          disabled={!connectionStatus?.isConnected || isRefining || isGeneratingImage}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !isRefining && refineRequest) {
+                              handleRefineContent();
+                            }
+                          }}
+                      />
+                      <Button onClick={handleRefineContent} disabled={!connectionStatus?.isConnected || isRefining || !refineRequest || isGeneratingImage}>
+                          {isRefining ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                          {dict.refine.buttonText}
+                      </Button>
+                  </div>
+
+                  {threadParts.length > 1 && (
+                      <div className="space-y-2 pt-4 border-t">
+                          <div className="flex justify-between items-center text-xs text-muted-foreground">
+                              <span>{dict.narrativeProgress.title}</span>
+                              <span>{isThreadComplete ? dict.narrativeProgress.complete : narrativeStages[stageIndex]}</span>
+                          </div>
+                          <Progress value={progressPercentage} className="w-full h-2" />
+                      </div>
+                  )}
+              </div>
             </CardContent>
-        </Card>
+          </Card>
+          <Card className="shadow-lg shadow-primary/10">
+              <CardHeader>
+                  <CardTitle className="font-headline text-xl">{dict.generatedImage.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  {isGeneratingImage && <Skeleton className="w-full aspect-video rounded-md" />}
+                  {generatedImage && !isGeneratingImage && (
+                       <div className="relative aspect-video rounded-md overflow-hidden border">
+                          <Image src={generatedImage} alt={dict.generatedImage.altText} layout="fill" objectFit="cover" data-ai-hint="generated content" />
+                       </div>
+                  )}
+                  {!generatedImage && !isGeneratingImage && (
+                      <div className="flex items-center justify-center aspect-video rounded-md border border-dashed bg-secondary/50">
+                          <p className="text-muted-foreground">{dict.generatedImage.placeholder}</p>
+                      </div>
+                  )}
+              </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-1 flex flex-col gap-8">
+          <Card className="shadow-lg shadow-primary/10">
+            <CardHeader>
+              <CardTitle className="font-headline text-xl flex items-center gap-2">
+                  <Search />
+                  {dict.trendAnalysis.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button onClick={handleCheckTrends} disabled={isCheckingTrends || !initialTheme} className="w-full justify-start text-left">
+                  {isCheckingTrends ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                  <span className="truncate">{dict.trendAnalysis.buttonText.replace('{topic}', initialTheme || dict.trendAnalysis.buttonDefaultText)}</span>
+              </Button>
+               {isCheckingTrends && <Skeleton className="h-20 w-full" />}
+               {trends && !isCheckingTrends && (
+                  <div className="space-y-2">
+                      <h4 className="font-semibold text-sm">{dict.trendAnalysis.relatedHashtags}</h4>
+                      <div className="flex flex-wrap gap-2">
+                          {trends.trends.map(trend => <Badge key={trend} variant="secondary">{trend}</Badge>)}
+                      </div>
+                      <p className="text-xs text-muted-foreground pt-2 break-words">{trends.summary}</p>
+                  </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg shadow-primary/10 bg-primary/5">
+              <CardHeader>
+                  <CardTitle className="font-headline text-xl">{dict.publish.title}</CardTitle>
+                   {isCheckingConnection ? (
+                      <Skeleton className="h-5 w-32 mt-1" />
+                   ) : connectionStatus?.isConnected ? (
+                      <CardDescription className="flex items-center gap-2 text-green-400">
+                          <Twitter className="w-4 h-4" />
+                          {dict.publish.connected_status}
+                      </CardDescription>
+                   ) : (
+                      <CardDescription>{dict.publish.description}</CardDescription>
+                   )}
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                  <Button onClick={handlePublish} disabled={!connectionStatus?.isConnected || isPublishing || !content} className="w-full" size="lg">
+                      {isPublishing ? <Loader2 className="animate-spin" /> : <Send />}
+                      {dict.publish.buttonText}
+                  </Button>
+                  
+                  <Separator className='my-2' />
+
+                  <Button asChild variant="outline" size="lg" disabled={!connectionStatus?.isConnected}>
+                      <Link href={{
+                        pathname: `/${lang}/dashboard/scheduler`,
+                        query: { 
+                          content: content, 
+                          theme: initialTheme, 
+                          image: generatedImage || ''
+                        }
+                      }}>
+                          <CalendarClock />
+                          {dict.publish.scheduleButton}
+                      </Link>
+                  </Button>
+              </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
