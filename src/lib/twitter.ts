@@ -1,11 +1,12 @@
 // src/lib/twitter.ts
-import { TwitterApi, type TwitterApiTokens } from 'twitter-api-v2';
+import type { TwitterApiTokens } from 'twitter-api-v2';
 import { cookies } from 'next/headers';
 
 /**
  * Generates an authentication client and URL for the Twitter OAuth 2.0 PKCE flow.
  */
-export function getTwitterClient() {
+export async function getTwitterClient() {
+  const { TwitterApi } = await import('twitter-api-v2');
   const clientId = process.env.TWITTER_CLIENT_ID;
   const clientSecret = process.env.TWITTER_CLIENT_SECRET;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
@@ -46,6 +47,8 @@ export function getTokens(): Partial<TwitterApiTokens> {
  * @returns An object containing the authenticated client and refreshed tokens if any.
  */
 export async function getAuthenticatedTwitterClient(accessToken?: string, refreshToken?: string) {
+    const { TwitterApi } = await import('twitter-api-v2');
+
     if (!accessToken || !refreshToken) {
         throw new Error('No access token or refresh token provided.');
     }

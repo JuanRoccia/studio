@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     return new Response('Invalid request: state mismatch or missing parameters.', { status: 400 });
   }
 
-  const { client } = getTwitterClient();
+  const { client } = await getTwitterClient();
   
   try {
     const { accessToken, refreshToken } = await client.loginWithPKCE({

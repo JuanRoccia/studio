@@ -4,7 +4,7 @@ import { getTwitterClient } from '@/lib/twitter';
 import { cookies } from 'next/headers';
 
 export async function GET(req: NextRequest) {
-  const { client, authUrl, codeVerifier, state } = getTwitterClient();
+  const { client, authUrl, codeVerifier, state } = await getTwitterClient();
   
   // Store codeVerifier and state in cookies to verify them in the callback
   cookies().set('twitter_code_verifier', codeVerifier, {
