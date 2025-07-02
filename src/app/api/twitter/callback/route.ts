@@ -5,7 +5,14 @@ import { loginWithPKCE } from '@/lib/twitter';
 
 export async function GET(req: NextRequest) {
   const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
-  const redirectUrl = new URL(`/${lang}/dashboard/publisher`, process.env.NEXT_PUBLIC_BASE_URL);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  
+  if (!baseUrl) {
+    return new NextResponse('Base URL is not configured.', { status: 500 });
+  }
+
+  // Redirect to the publisher page, which is better suited for handling this.
+  const redirectUrl = new URL(`/${lang}/dashboard/publisher`, baseUrl);
 
   try {
     const { searchParams } = new URL(req.url);
@@ -13,8 +20,9 @@ export async function GET(req: NextRequest) {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
 
+    // Handle user denial of authorization
     if (error) {
-      console.error('Twitter authorization error:', error);
+      console.error('Twitter authorization was denied by the user:', error);
       redirectUrl.searchParams.set('error', 'twitter_auth_denied');
       redirectUrl.searchParams.set('details', `Twitter reported an error: ${error}`);
       return NextResponse.redirect(redirectUrl);
@@ -25,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     if (!state || !code || !storedState || !storedCodeVerifier || state !== storedState) {
       redirectUrl.searchParams.set('error', 'invalid_request');
-      redirectUrl.searchParams.set('details', 'State mismatch or missing parameters. Please try again.');
+      redirectUrl.searchParams.set('details', 'State mismatch or missing parameters. Please try connecting again.');
       return NextResponse.redirect(redirectUrl);
     }
 
@@ -44,15 +52,17 @@ export async function GET(req: NextRequest) {
       cookies().set('twitter_refresh_token', refreshToken, permanentCookieOptions);
     }
 
+    // Clean up temporary cookies
     cookies().delete('twitter_state');
     cookies().delete('twitter_code_verifier');
     
+    // Redirect with success message
     redirectUrl.searchParams.set('success', 'twitter_connected');
     return NextResponse.redirect(redirectUrl);
   
   } catch (error) {
     console.error("Twitter callback error:", error);
-    const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
+    const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred during callback.';
     redirectUrl.searchParams.set('error', 'callback_failed');
     redirectUrl.searchParams.set('details', errorMessage);
     return NextResponse.redirect(redirectUrl);

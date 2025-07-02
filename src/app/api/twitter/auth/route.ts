@@ -26,7 +26,11 @@ export async function GET(req: NextRequest) {
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
     
     const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
-    const redirectUrl = new URL(`/${lang}/dashboard/publisher`, process.env.NEXT_PUBLIC_BASE_URL);
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) {
+      return new NextResponse('Base URL is not configured.', { status: 500 });
+    }
+    const redirectUrl = new URL(`/${lang}/dashboard/publisher`, baseUrl);
     redirectUrl.searchParams.set('error', 'twitter_auth_failed');
     redirectUrl.searchParams.set('details', errorMessage);
     

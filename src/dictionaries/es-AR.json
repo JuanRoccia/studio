@@ -90,6 +90,23 @@
             "title": "Tablero de Rendimiento",
             "description": "Seguí el rendimiento de tu contenido y la interacción de tu audiencia."
         },
+        "twitterIntegration": {
+            "title": "Integración con Twitter",
+            "description": "Conectá tu cuenta para publicar contenido directamente.",
+            "checkingStatus": "Verificando estado...",
+            "connectedAs": "Conectado como @{user}",
+            "disconnect": "Desconectar",
+            "connect": "Conectar Twitter",
+            "connectionError": "Error de Conexión",
+            "unknownError": "Ocurrió un error desconocido.",
+            "connectSuccess": "¡Éxito!",
+            "connectSuccessDesc": "Tu cuenta de Twitter ha sido conectada.",
+            "connectFail": "Falló la Conexión",
+            "connectFailDesc": "No se pudo conectar a Twitter. Por favor, intentá de nuevo.",
+            "disconnectSuccess": "Twitter Desconectado",
+            "disconnectFail": "Falló la Desconexión",
+            "disconnectFailDesc": "No se pudo desconectar tu cuenta."
+        },
         "conspiracyThemeGenerator": {
             "title": "Generador de Temas de Conspiración",
             "description": "Generá temas de conspiración basados en eventos actuales y palabras clave.",
@@ -175,6 +192,7 @@
             "errorDescription": "No se pudieron obtener las tendencias para este tema."
         },
         "publish": {
+            "connection_title": "Conexión con Twitter",
             "title": "Publicar",
             "buttonText": "Publicar Ahora",
             "scheduleButton": "Programar Posteo",

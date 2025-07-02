@@ -86,33 +86,36 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   }, []);
 
   useEffect(() => {
-    checkConnection();
-  }, [checkConnection]);
-  
-  useEffect(() => {
+    // This effect handles the callback from the Twitter auth flow.
     const success = searchParams.get('success');
     const error = searchParams.get('error');
     const details = searchParams.get('details');
 
     if (success === 'twitter_connected') {
       toast({
-        title: "Connection Successful!",
-        description: "Your Twitter account has been connected.",
+        title: dict.publish.connection_success_title || "Connection Successful!",
+        description: dict.publish.connection_success_desc || "Your Twitter account has been connected.",
       });
       checkConnection();
       router.replace(`/${lang}/dashboard/publisher`);
     } else if (error) {
       toast({
         variant: 'destructive',
-        title: "Connection Failed",
+        title: dict.publish.connection_failed_title || "Connection Failed",
         description: decodeURIComponent(details || "An unknown error occurred. Please try again."),
       });
       router.replace(`/${lang}/dashboard/publisher`);
     }
-  }, [searchParams, lang, router, toast, checkConnection]);
+  }, [searchParams, lang, router, toast, checkConnection, dict]);
 
 
   useEffect(() => {
+    // This effect runs on initial mount to check the connection status.
+    checkConnection();
+  }, [checkConnection]);
+  
+  useEffect(() => {
+    // This effect populates the content from URL params if available.
     setContent(initialContent);
     if(initialContent) {
         setThreadParts([initialContent]);
@@ -270,6 +273,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   };
 
   const handleConnectTwitter = () => {
+    setIsCheckingConnection(true);
     window.location.href = '/api/twitter/auth';
   };
 
@@ -347,15 +351,11 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
                   size="sm"
                   disabled={isCheckingConnection}
                 >
-                  {isCheckingConnection ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3 w-3" />
-                  )}
+                  <RefreshCw className="mr-2 h-3 w-3" />
                   Refresh
                 </Button>
                 <Button onClick={handleDisconnect} variant="destructive" size="sm" disabled={isCheckingConnection}>
-                  {isCheckingConnection ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="w-4 h-4" />}
+                  <Power className="mr-2 w-4 h-4" />
                   {dict.publish.disconnect_button}
                 </Button>
               </div>
@@ -376,7 +376,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
                 </Alert>
               )}
               
-              <Button onClick={handleConnectTwitter} className="w-full">
+              <Button onClick={handleConnectTwitter} className="w-full" disabled={isCheckingConnection}>
                 <Twitter className="mr-2 h-4 w-4" />
                 {dict.publish.connect_button}
               </Button>

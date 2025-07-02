@@ -90,6 +90,23 @@
             "title": "Performance Dashboard",
             "description": "Track your content performance and audience engagement."
         },
+        "twitterIntegration": {
+            "title": "Twitter Integration",
+            "description": "Connect your account to publish content directly.",
+            "checkingStatus": "Checking status...",
+            "connectedAs": "Connected as @{user}",
+            "disconnect": "Disconnect",
+            "connect": "Connect Twitter",
+            "connectionError": "Connection Error",
+            "unknownError": "An unknown error occurred.",
+            "connectSuccess": "Success!",
+            "connectSuccessDesc": "Your Twitter account is now connected.",
+            "connectFail": "Connection Failed",
+            "connectFailDesc": "Could not connect to Twitter. Please try again.",
+            "disconnectSuccess": "Twitter Disconnected",
+            "disconnectFail": "Disconnection Failed",
+            "disconnectFailDesc": "Could not disconnect your account."
+        },
         "conspiracyThemeGenerator": {
             "title": "Conspiracy Theme Generator",
             "description": "Generate conspiracy theory themes based on current events and keywords.",
@@ -175,6 +192,7 @@
             "errorDescription": "Could not fetch trends for this topic."
         },
         "publish": {
+            "connection_title": "Twitter Connection",
             "title": "Publish",
             "buttonText": "Publish Now",
             "scheduleButton": "Schedule Post",

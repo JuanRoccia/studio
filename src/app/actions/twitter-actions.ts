@@ -24,9 +24,14 @@ export async function checkTwitterConnection() {
     };
   } catch (error) {
     console.error('Error checking Twitter connection status:', error);
+    // Propagate a user-friendly error message
+    const errorMessage = error instanceof Error && (error.message.includes('session is invalid') || error.message.includes('session has expired'))
+      ? error.message
+      : 'Failed to verify connection. Please try reconnecting.';
+    
     return { 
       isConnected: false, 
-      error: error instanceof Error ? error.message : 'Failed to verify connection.' 
+      error: errorMessage
     };
   }
 }
@@ -53,11 +58,14 @@ export async function publishToTwitter(tweets: string[]) {
     const { client } = await getAuthenticatedTwitterClient();
     
     let result;
+    // Remove numbering like "1/", "2/ " from the start of each tweet
     const cleanedTweets = tweets.map(t => t.replace(/^\d+\/\s*/, '').trim());
 
     if (cleanedTweets.length > 1) {
+        // Publish as a thread
         result = await client.v2.tweetThread(cleanedTweets);
     } else {
+        // Publish a single tweet
         const content = cleanedTweets[0];
         if (content.length > 280) {
             return { success: false, error: 'Tweet content exceeds 280 characters limit.' };

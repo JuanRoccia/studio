@@ -10,6 +10,7 @@ interface TwitterTokens {
 }
 
 async function getTwitterApi() {
+  // This dynamic import is critical to prevent Next.js server-side initialization issues.
   const { TwitterApi } = await import('twitter-api-v2');
   return TwitterApi;
 }
@@ -82,12 +83,15 @@ export async function getAuthenticatedTwitterClient(): Promise<{ client: Twitter
     const client = new TwitterApi(accessToken);
 
     try {
+        // Make a simple request to check if the token is valid
         await client.v2.me({ 'user.fields': ['id'] });
         return { client };
     } catch (error: any) {
+        // If the token is expired (401) and we have a refresh token, try to refresh it
         if (error?.code !== 401 || !refreshToken) {
+            // If it's not a 401 error, or if there's no refresh token, we can't recover.
             if (error?.code === 401) {
-                console.log("Token invalid, clearing tokens.");
+                console.log("Token invalid and no refresh token available, clearing tokens.");
                 await clearTokens();
             }
             console.error('Twitter API error or invalid token:', error);
@@ -103,6 +107,7 @@ export async function getAuthenticatedTwitterClient(): Promise<{ client: Twitter
             const appClient = new TwitterApi({ clientId, clientSecret });
             const { client: refreshedClient, accessToken: newAccessToken, refreshToken: newRefreshToken } = await appClient.refreshOAuth2Token(refreshToken);
 
+            // Securely set the new tokens in cookies
             const cookieOptions = {
                 httpOnly: true,
                 secure: true,
@@ -120,6 +125,7 @@ export async function getAuthenticatedTwitterClient(): Promise<{ client: Twitter
             return { client: refreshedClient };
         } catch (refreshError: any) {
             console.error('Could not refresh Twitter token:', refreshError);
+            // If refresh fails, clear the stale tokens
             await clearTokens();
             throw new Error('Your Twitter session has expired. Please disconnect and reconnect.');
         }
