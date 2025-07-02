@@ -11,7 +11,6 @@ export async function GET(req: NextRequest) {
     return new NextResponse('Base URL is not configured.', { status: 500 });
   }
 
-  // Redirect to the publisher page, which is better suited for handling this.
   const redirectUrl = new URL(`/${lang}/dashboard/publisher`, baseUrl);
 
   try {

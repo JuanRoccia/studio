@@ -1,5 +1,6 @@
 // src/lib/twitter.ts
-'use server';
+// This is a PURE server-side library. It should NOT have 'use server'.
+// It is designed to be imported by API Route Handlers and Server Actions.
 
 import { cookies } from 'next/headers';
 import type { TwitterApi } from 'twitter-api-v2';
@@ -9,12 +10,19 @@ interface TwitterTokens {
   refreshToken?: string;
 }
 
+/**
+ * Dynamically imports and returns the TwitterApi class.
+ * This is a crucial step to avoid Next.js bundling issues.
+ */
 async function getTwitterApi() {
-  // This dynamic import is critical to prevent Next.js server-side initialization issues.
   const { TwitterApi } = await import('twitter-api-v2');
   return TwitterApi;
 }
 
+/**
+ * Generates the OAuth 2.0 Authorization URL for Twitter.
+ * This is the first step in the authentication flow.
+ */
 export async function generateAuthLink() {
   const TwitterApi = await getTwitterApi();
   const clientId = process.env.TWITTER_CLIENT_ID;
@@ -37,6 +45,12 @@ export async function generateAuthLink() {
   return { url, codeVerifier, state };
 }
 
+/**
+ * Exchanges the authorization code for an access token and refresh token.
+ * This is the second step, handled by the callback route.
+ * @param code The authorization code from Twitter's callback.
+ * @param codeVerifier The original code verifier stored in a cookie.
+ */
 export async function loginWithPKCE(code: string, codeVerifier: string) {
   const TwitterApi = await getTwitterApi();
   const clientId = process.env.TWITTER_CLIENT_ID;
@@ -49,6 +63,7 @@ export async function loginWithPKCE(code: string, codeVerifier: string) {
 
   const client = new TwitterApi({ clientId, clientSecret });
   const callbackUrl = `${baseUrl}/api/twitter/callback`;
+
   const { accessToken, refreshToken } = await client.loginWithOAuth2({
     code,
     codeVerifier,
@@ -59,6 +74,10 @@ export async function loginWithPKCE(code: string, codeVerifier: string) {
 }
 
 
+/**
+ * Retrieves the stored access and refresh tokens from cookies.
+ * Returns null if no access token is found.
+ */
 export async function getTokens(): Promise<TwitterTokens | null> {
   const cookieStore = cookies();
   const accessToken = cookieStore.get('twitter_access_token')?.value;
@@ -71,6 +90,11 @@ export async function getTokens(): Promise<TwitterTokens | null> {
   return { accessToken, refreshToken };
 }
 
+/**
+ * Creates an authenticated Twitter API client.
+ * It will automatically attempt to refresh the token if it's expired.
+ * Throws an error if authentication fails.
+ */
 export async function getAuthenticatedTwitterClient(): Promise<{ client: TwitterApi }> {
     const existingTokens = await getTokens();
     if (!existingTokens?.accessToken) {
@@ -132,6 +156,9 @@ export async function getAuthenticatedTwitterClient(): Promise<{ client: Twitter
     }
 }
 
+/**
+ * Deletes the Twitter authentication cookies.
+ */
 export async function clearTokens() {
   const cookieStore = cookies();
   cookieStore.delete('twitter_access_token');

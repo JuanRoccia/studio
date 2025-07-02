@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Twitter, CheckCircle, AlertCircle, Loader2, Power } from 'lucide-react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { checkTwitterConnection, disconnectTwitter } from '@/app/actions/twitter-actions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -29,6 +29,7 @@ export default function TwitterIntegration({ dict }: { dict: any }) {
 
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
 
   const checkConnection = useCallback(async () => {
     setLoading(true);
@@ -68,7 +69,7 @@ export default function TwitterIntegration({ dict }: { dict: any }) {
       // After a successful connection, re-check the status to update the UI
       checkConnection();
       // Clean up the URL
-      router.replace(window.location.pathname);
+      router.replace(pathname);
     } else if (error) {
       const errorMessage = decodeURIComponent(details || dict.connectFailDesc);
       toast({
@@ -77,19 +78,19 @@ export default function TwitterIntegration({ dict }: { dict: any }) {
         description: errorMessage,
       });
        // Clean up the URL
-      router.replace(window.location.pathname);
+      router.replace(pathname);
     }
     
-    // Initial check on component mount if no params are present
-    if (!success && !error) {
-        checkConnection();
-    }
-  }, [searchParams, router, toast, checkConnection, dict]);
+    // Initial check on component mount
+    checkConnection();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   const handleConnect = () => {
     setLoading(true);
-    // Simply redirect to the auth endpoint. It handles the rest.
+    // This is the CORRECT way: The client simply navigates to the API route.
+    // The server handles the entire OAuth2 flow.
     window.location.href = '/api/twitter/auth';
   };
 

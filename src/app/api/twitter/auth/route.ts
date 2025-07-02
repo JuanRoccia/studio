@@ -4,6 +4,13 @@ import { generateAuthLink } from '@/lib/twitter';
 import { cookies } from 'next/headers';
 
 export async function GET(req: NextRequest) {
+  const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  if (!baseUrl) {
+    return new NextResponse('Base URL is not configured.', { status: 500 });
+  }
+  const publisherUrl = new URL(`/${lang}/dashboard/publisher`, baseUrl);
+
   try {
     const { url, codeVerifier, state } = await generateAuthLink();
     
@@ -25,15 +32,9 @@ export async function GET(req: NextRequest) {
     console.error("Error in Twitter auth route:", error);
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
     
-    const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    if (!baseUrl) {
-      return new NextResponse('Base URL is not configured.', { status: 500 });
-    }
-    const redirectUrl = new URL(`/${lang}/dashboard/publisher`, baseUrl);
-    redirectUrl.searchParams.set('error', 'twitter_auth_failed');
-    redirectUrl.searchParams.set('details', errorMessage);
+    publisherUrl.searchParams.set('error', 'twitter_auth_failed');
+    publisherUrl.searchParams.set('details', errorMessage);
     
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(publisherUrl);
   }
 }

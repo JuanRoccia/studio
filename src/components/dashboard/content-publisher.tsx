@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,7 @@ interface ConnectionStatus {
 export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dict: any, sharedDict: any }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   
   const initialContent = searchParams.get('content') || '';
@@ -99,7 +100,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
       // After a successful connection, re-check the status to update the UI
       checkConnection();
       // Clean up the URL by removing search params
-      router.replace(`/${lang}/dashboard/publisher`);
+      router.replace(pathname);
     } else if (error) {
       toast({
         variant: 'destructive',
@@ -107,9 +108,10 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
         description: decodeURIComponent(details || "An unknown error occurred. Please try again."),
       });
       // Clean up the URL by removing search params
-      router.replace(`/${lang}/dashboard/publisher`);
+      router.replace(pathname);
     }
-  }, [searchParams, lang, router, toast, checkConnection, dict]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
 
   useEffect(() => {
@@ -277,7 +279,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
 
   const handleConnectTwitter = () => {
     setIsCheckingConnection(true);
-    // Redirect to the API route that starts the auth flow
+    // This is the CORRECT way: The client simply navigates to the API route.
     window.location.href = '/api/twitter/auth';
   };
 
