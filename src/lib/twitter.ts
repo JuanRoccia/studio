@@ -6,16 +6,20 @@ import { cookies } from 'next/headers';
  * Generates an authentication client and URL for the Twitter OAuth 2.0 PKCE flow.
  */
 export function getTwitterClient() {
-  if (!process.env.TWITTER_CLIENT_ID || !process.env.TWITTER_CLIENT_SECRET || !process.env.NEXT_PUBLIC_BASE_URL) {
-    throw new Error('Missing Twitter environment variables');
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  if (!clientId || !clientSecret || !baseUrl) {
+    throw new Error('Missing Twitter environment variables. Please check your .env file.');
   }
 
   const client = new TwitterApi({
-    clientId: process.env.TWITTER_CLIENT_ID,
-    clientSecret: process.env.TWITTER_CLIENT_SECRET,
+    clientId,
+    clientSecret,
   });
   
-  const CALLBACK_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitter/callback`;
+  const CALLBACK_URL = `${baseUrl}/api/twitter/callback`;
   const { url, codeVerifier, state } = client.generateOAuth2AuthLink(CALLBACK_URL, {
     scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
   });
@@ -45,43 +49,47 @@ export async function getAuthenticatedTwitterClient(accessToken?: string, refres
     if (!accessToken || !refreshToken) {
         throw new Error('No access token or refresh token provided.');
     }
-    if (!process.env.TWITTER_CLIENT_ID || !process.env.TWITTER_CLIENT_SECRET) {
+    const clientId = process.env.TWITTER_CLIENT_ID;
+    const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
       throw new Error('Missing Twitter app environment variables on the server.');
     }
 
     const client = new TwitterApi({ 
-      clientId: process.env.TWITTER_CLIENT_ID,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET,
+      clientId,
+      clientSecret,
       accessToken, 
       refreshToken 
     });
 
-    let refreshed: Partial<TwitterApiTokens> | undefined;
-
     try {
-        // Check if the token is expired by making a cheap, harmless request.
+        // A cheap request to verify token validity. If it fails with 401, we'll try to refresh.
         await client.v2.me({ 'user.fields': ['id'] });
+        return { client, refreshed: undefined };
     } catch (error: any) {
-        // If the token is expired (or invalid), try to refresh it.
-        if (error?.code === 401) { 
-            console.log('Access token expired, attempting to refresh...');
-            try {
-                const { client: refreshedClient, accessToken: newAccessToken, refreshToken: newRefreshToken } = await client.refreshOAuth2Token();
-                
-                refreshed = {
-                    accessToken: newAccessToken,
-                    refreshToken: newRefreshToken,
-                };
-                
-                return { client: refreshedClient, refreshed };
-            } catch (refreshError) {
-                console.error('Could not refresh Twitter token:', refreshError);
-                throw new Error('Twitter authentication expired. Please reconnect.');
-            }
+        if (error?.code !== 401) {
+             // Not an authentication error, re-throw it.
+            console.error('An unexpected error occurred with the Twitter API:', error);
+            throw error;
         }
-        // Re-throw other errors
-        throw error;
-    }
 
-    return { client, refreshed: undefined };
+        console.log('Access token may be expired, attempting to refresh...');
+        try {
+            const { client: refreshedClient, accessToken: newAccessToken, refreshToken: newRefreshToken } = await client.refreshOAuth2Token();
+            
+            const refreshed = {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+            };
+            
+            console.log('Twitter token refreshed successfully.');
+            return { client: refreshedClient, refreshed };
+        } catch (refreshError: any) {
+            console.error('Could not refresh Twitter token:', refreshError);
+            // If refresh fails, it's likely the refresh token is also invalid.
+            // The user needs to re-authenticate.
+            throw new Error('Twitter authentication has expired. Please disconnect and reconnect your account.');
+        }
+    }
 }
