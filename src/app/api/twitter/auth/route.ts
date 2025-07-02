@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     // Store codeVerifier and state in cookies to verify them in the callback
     const cookieOptions = {
       httpOnly: true,
-      secure: true, // Always true for cloud environments with https
+      secure: true,
       path: '/',
       maxAge: 60 * 15, // 15 minutes
       sameSite: 'lax' as const,
@@ -25,9 +25,8 @@ export async function GET(req: NextRequest) {
     console.error("Error in Twitter auth route:", error);
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
     
-    // Redirect back to dashboard with an error message
     const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
-    const redirectUrl = new URL(`/${lang}/dashboard/publisher`, req.url);
+    const redirectUrl = new URL(`/${lang}/dashboard/publisher`, process.env.NEXT_PUBLIC_BASE_URL);
     redirectUrl.searchParams.set('error', 'twitter_auth_failed');
     redirectUrl.searchParams.set('details', errorMessage);
     

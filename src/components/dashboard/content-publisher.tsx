@@ -258,11 +258,12 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
       }
     } catch (error) {
       console.error('Error publishing:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish content';
       setPublishResult({
         success: false,
-        error: 'Failed to publish content'
+        error: errorMessage
       });
-      toast({ variant: 'destructive', title: sharedDict.toasts.publish_error_title, description: 'Failed to publish content' });
+      toast({ variant: 'destructive', title: sharedDict.toasts.publish_error_title, description: errorMessage });
     } finally {
       setIsPublishing(false);
     }
@@ -273,8 +274,9 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   };
 
   const handleDisconnect = async () => {
+    setIsCheckingConnection(true);
     await disconnectTwitter();
-    setConnectionStatus({ isConnected: false });
+    await checkConnection();
     toast({ title: dict.publish.disconnect_success_title });
   };
 
@@ -352,8 +354,8 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
                   )}
                   Refresh
                 </Button>
-                <Button onClick={handleDisconnect} variant="destructive" size="sm">
-                  <Power className="w-4 h-4" />
+                <Button onClick={handleDisconnect} variant="destructive" size="sm" disabled={isCheckingConnection}>
+                  {isCheckingConnection ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="w-4 h-4" />}
                   {dict.publish.disconnect_button}
                 </Button>
               </div>
@@ -456,7 +458,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
 
               <div className="flex flex-col gap-4 pt-4 border-t">
                   <div className="flex flex-wrap gap-2">
-                      <Button onClick={handleGenerateThread} disabled={!connectionStatus?.isConnected || isGeneratingThread || isThreadComplete || isRefining || isGeneratingImage}>
+                      <Button onClick={handleGenerateThread} disabled={isGeneratingThread || isThreadComplete || isRefining || isGeneratingImage || !content.trim()}>
                           {isGeneratingThread ? <Loader2 className="animate-spin" /> : <Repeat />}
                           {isThreadComplete ? dict.buttons.threadComplete : dict.buttons.expandThread}
                       </Button>
@@ -467,11 +469,11 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
                           className="hidden"
                           accept="image/png, image/jpeg, image/webp"
                       />
-                      <Button onClick={handleGenerateImage} disabled={!connectionStatus?.isConnected || isGeneratingImage || isRefining}>
+                      <Button onClick={handleGenerateImage} disabled={isGeneratingImage || isRefining || !content.trim()}>
                           {isGeneratingImage ? <Loader2 className="animate-spin" /> : <ImageIcon />}
                           {dict.buttons.generateImage}
                       </Button>
-                      <Button onClick={handleUploadClick} variant="outline" disabled={!connectionStatus?.isConnected || isGeneratingImage || isRefining}>
+                      <Button onClick={handleUploadClick} variant="outline" disabled={isGeneratingImage || isRefining}>
                           <Upload />
                           {dict.buttons.uploadImage}
                       </Button>
@@ -483,14 +485,14 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
                           onChange={(e) => setRefineRequest(e.target.value)}
                           placeholder={dict.refine.inputPlaceholder}
                           className="flex-1 min-w-[200px]"
-                          disabled={!connectionStatus?.isConnected || isRefining || isGeneratingImage}
+                          disabled={isRefining || isGeneratingImage || !content.trim()}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !isRefining && refineRequest) {
                               handleRefineContent();
                             }
                           }}
                       />
-                      <Button onClick={handleRefineContent} disabled={!connectionStatus?.isConnected || isRefining || !refineRequest || isGeneratingImage}>
+                      <Button onClick={handleRefineContent} disabled={isRefining || !refineRequest || isGeneratingImage || !content.trim()}>
                           {isRefining ? <Loader2 className="animate-spin" /> : <Wand2 />}
                           {dict.refine.buttonText}
                       </Button>
@@ -537,7 +539,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button onClick={handleCheckTrends} disabled={isCheckingTrends || !initialTheme} className="w-full justify-start text-left">
+              <Button onClick={handleCheckTrends} disabled={isCheckingTrends || !initialTheme.trim()} className="w-full justify-start text-left">
                   {isCheckingTrends ? <Loader2 className="animate-spin" /> : <Wand2 />}
                   <span className="truncate">{dict.trendAnalysis.buttonText.replace('{topic}', initialTheme || dict.trendAnalysis.buttonDefaultText)}</span>
               </Button>

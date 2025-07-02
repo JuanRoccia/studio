@@ -5,7 +5,7 @@ import { loginWithPKCE } from '@/lib/twitter';
 
 export async function GET(req: NextRequest) {
   const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
-  const redirectUrl = new URL(`/${lang}/dashboard/publisher`, req.url);
+  const redirectUrl = new URL(`/${lang}/dashboard/publisher`, process.env.NEXT_PUBLIC_BASE_URL);
 
   try {
     const { searchParams } = new URL(req.url);
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     
     const permanentCookieOptions = {
         httpOnly: true,
-        secure: true, // Always true for cloud environments with https
+        secure: true,
         path: '/',
         maxAge: 60 * 60 * 24 * 90, // 90 days
         sameSite: 'lax' as const,

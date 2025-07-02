@@ -10,6 +10,7 @@ export async function checkTwitterConnection() {
       return { isConnected: false };
     }
 
+    // This call will automatically handle token refresh if needed
     const { client } = await getAuthenticatedTwitterClient();
 
     const user = await client.v2.me();
@@ -75,9 +76,10 @@ export async function publishToTwitter(tweets: string[]) {
     };
   } catch (error) {
     console.error('Error publishing to Twitter:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to publish tweet.';
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Failed to publish tweet.' 
+      error: errorMessage
     };
   }
 }
