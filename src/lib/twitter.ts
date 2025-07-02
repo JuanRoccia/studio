@@ -2,22 +2,20 @@
 import { TwitterApi, type TwitterApiTokens } from 'twitter-api-v2';
 import { cookies } from 'next/headers';
 
-if (!process.env.TWITTER_CLIENT_ID || !process.env.TWITTER_CLIENT_SECRET || !process.env.NEXT_PUBLIC_BASE_URL) {
-  throw new Error('Missing Twitter environment variables');
-}
-
-const twitterAppConfig = {
-  clientId: process.env.TWITTER_CLIENT_ID,
-  clientSecret: process.env.TWITTER_CLIENT_SECRET,
-};
-
-const CALLBACK_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitter/callback`;
-
 /**
  * Generates an authentication client and URL for the Twitter OAuth 2.0 PKCE flow.
  */
 export function getTwitterClient() {
-  const client = new TwitterApi(twitterAppConfig);
+  if (!process.env.TWITTER_CLIENT_ID || !process.env.TWITTER_CLIENT_SECRET || !process.env.NEXT_PUBLIC_BASE_URL) {
+    throw new Error('Missing Twitter environment variables');
+  }
+
+  const client = new TwitterApi({
+    clientId: process.env.TWITTER_CLIENT_ID,
+    clientSecret: process.env.TWITTER_CLIENT_SECRET,
+  });
+  
+  const CALLBACK_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitter/callback`;
   const { url, codeVerifier, state } = client.generateOAuth2AuthLink(CALLBACK_URL, {
     scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
   });
@@ -47,8 +45,17 @@ export async function getAuthenticatedTwitterClient(accessToken?: string, refres
     if (!accessToken || !refreshToken) {
         throw new Error('No access token or refresh token provided.');
     }
+    if (!process.env.TWITTER_CLIENT_ID || !process.env.TWITTER_CLIENT_SECRET) {
+      throw new Error('Missing Twitter app environment variables on the server.');
+    }
 
-    const client = new TwitterApi({ ...twitterAppConfig, accessToken, refreshToken });
+    const client = new TwitterApi({ 
+      clientId: process.env.TWITTER_CLIENT_ID,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET,
+      accessToken, 
+      refreshToken 
+    });
+
     let refreshed: Partial<TwitterApiTokens> | undefined;
 
     try {
@@ -59,13 +66,14 @@ export async function getAuthenticatedTwitterClient(accessToken?: string, refres
         if (error?.code === 401) { 
             console.log('Access token expired, attempting to refresh...');
             try {
-                const refreshResult = await client.refreshOAuth2Token(refreshToken);
+                const { client: refreshedClient, accessToken: newAccessToken, refreshToken: newRefreshToken } = await client.refreshOAuth2Token();
+                
                 refreshed = {
-                    accessToken: refreshResult.accessToken,
-                    refreshToken: refreshResult.refreshToken,
+                    accessToken: newAccessToken,
+                    refreshToken: newRefreshToken,
                 };
-                // Create a new client with the refreshed tokens
-                return { client: new TwitterApi(refreshed), refreshed };
+                
+                return { client: refreshedClient, refreshed };
             } catch (refreshError) {
                 console.error('Could not refresh Twitter token:', refreshError);
                 throw new Error('Twitter authentication expired. Please reconnect.');

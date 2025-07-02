@@ -46,6 +46,10 @@ Como pieza clave en mi portfolio, "Veiled Truths" demuestra mi capacidad para co
 
 El diseño y la guía de estilo, incluyendo la paleta de colores y tipografías, se encuentran documentados en `/docs/blueprint.md`.
 
+## Use cases of Twitter’s data and API
+
+I will use the Twitter API to build and showcase a demo application called “Veiled Truths,” a customizable AI-powered content manager dashboard. The platform helps generate, curate, and schedule marketing content, analyze audience interests, and identify relevant trends and conversations. This data will be used exclusively to enhance content recommendations, visualize engagement metrics, and demonstrate the capabilities of the dashboard to potential clients and as part of my personal portfolio. No data will be resold or redistributed.
+
 ## Configuración e Instalación
 
 Para levantar el proyecto localmente, sigue estos pasos:
