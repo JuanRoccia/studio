@@ -1,7 +1,6 @@
 // src/app/api/twitter/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { loginWithPKCE } from '@/lib/twitter';
+import { exchangeCodeForTokens, saveTokensToCookies } from '@/lib/twitter';
 
 export async function GET(req: NextRequest) {
   const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
@@ -27,8 +26,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
     
-    const storedState = cookies().get('twitter_state')?.value;
-    const storedCodeVerifier = cookies().get('twitter_code_verifier')?.value;
+    const storedState = req.cookies.get('twitter_state')?.value;
+    const storedCodeVerifier = req.cookies.get('twitter_code_verifier')?.value;
 
     if (!state || !code || !storedState || !storedCodeVerifier || state !== storedState) {
       redirectUrl.searchParams.set('error', 'invalid_request');
@@ -36,24 +35,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    const { accessToken, refreshToken } = await loginWithPKCE(code, storedCodeVerifier);
+    const { accessToken, refreshToken } = await exchangeCodeForTokens(code, storedCodeVerifier);
     
-    const permanentCookieOptions = {
-        httpOnly: true,
-        secure: true,
-        path: '/',
-        maxAge: 60 * 60 * 24 * 90, // 90 days
-        sameSite: 'lax' as const,
-    };
-    
-    cookies().set('twitter_access_token', accessToken, permanentCookieOptions);
-    if (refreshToken) {
-      cookies().set('twitter_refresh_token', refreshToken, permanentCookieOptions);
-    }
+    saveTokensToCookies({ accessToken, refreshToken });
 
     // Clean up temporary cookies
-    cookies().delete('twitter_state');
-    cookies().delete('twitter_code_verifier');
+    const response = NextResponse.redirect(redirectUrl);
+    response.cookies.delete('twitter_state');
+    response.cookies.delete('twitter_code_verifier');
     
     // Redirect with success message
     redirectUrl.searchParams.set('success', 'twitter_connected');

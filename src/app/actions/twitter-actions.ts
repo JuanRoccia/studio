@@ -1,42 +1,40 @@
+// src/app/actions/twitter-actions.ts
 'use server';
 
 import {
-  getTokens,
+  getTokensFromCookies,
   getAuthenticatedTwitterClient,
-  clearTokens,
+  clearTokensInCookies,
 } from '@/lib/twitter';
+import { revalidatePath } from 'next/cache';
 
 /**
  * Checks if a user is currently connected to Twitter by validating their tokens.
- * This is a Server Action that can be called from client components.
  */
 export async function checkTwitterConnection() {
+  const tokens = getTokensFromCookies();
+  if (!tokens?.accessToken) {
+    return { isConnected: false };
+  }
+
   try {
-    const tokens = await getTokens();
-    if (!tokens?.accessToken) {
-      return { isConnected: false };
-    }
-
-    // This call will automatically handle token refresh if needed
     const { client } = await getAuthenticatedTwitterClient();
-
-    const user = await client.v2.me();
+    const user = await client.v2.me({ 'user.fields': ['profile_image_url'] });
     return {
       isConnected: true,
       user: {
         id: user.data.id,
         username: user.data.username,
         name: user.data.name,
+        profile_image_url: user.data.profile_image_url,
       },
     };
   } catch (error) {
     console.error('Error checking Twitter connection status:', error);
-    // Propagate a user-friendly error message
     const errorMessage =
       error instanceof Error
         ? error.message
         : 'Failed to verify connection. Please try reconnecting.';
-
     return {
       isConnected: false,
       error: errorMessage,
@@ -46,109 +44,9 @@ export async function checkTwitterConnection() {
 
 /**
  * Disconnects the user's Twitter account by clearing authentication cookies.
- * This is a Server Action.
  */
 export async function disconnectTwitter() {
-  try {
-    await clearTokens();
-    return { success: true };
-  } catch (error) {
-    console.error('Error disconnecting from Twitter:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to disconnect.',
-    };
-  }
-}
-
-/**
- * Publishes a single tweet or a thread to Twitter.
- * This is a Server Action.
- * @param tweets An array of strings, where each string is a tweet in the thread.
- */
-export async function publishToTwitter(tweets: string[]) {
-  if (!tweets || tweets.length === 0 || !tweets[0].trim()) {
-    return { success: false, error: 'Tweet content cannot be empty.' };
-  }
-
-  try {
-    const { client } = await getAuthenticatedTwitterClient();
-
-    let result;
-    // Remove numbering like "1/", "2/ " from the start of each tweet
-    const cleanedTweets = tweets.map((t) =>
-      t.replace(/^\d+\/\s*/, '').trim()
-    );
-
-    if (cleanedTweets.length > 1) {
-      // Publish as a thread
-      result = await client.v2.tweetThread(cleanedTweets);
-    } else {
-      // Publish a single tweet
-      const content = cleanedTweets[0];
-      if (content.length > 280) {
-        return {
-          success: false,
-          error: 'Tweet content exceeds 280 characters limit.',
-        };
-      }
-      result = await client.v2.tweet(content);
-    }
-
-    const tweetId = Array.isArray(result) ? result[0].data.id : result.data.id;
-    const username = (await client.v2.me()).data.username;
-
-    return {
-      success: true,
-      tweetId: tweetId,
-      message:
-        tweets.length > 1
-          ? 'Thread published successfully!'
-          : 'Tweet published successfully!',
-      tweetUrl: `https://twitter.com/${username}/status/${tweetId}`,
-    };
-  } catch (error) {
-    console.error('Error publishing to Twitter:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'Failed to publish tweet.';
-    return {
-      success: false,
-      error: errorMessage,
-    };
-  }
-}
-
-/**
- * Retrieves detailed information about the authenticated Twitter user.
- * This is a Server Action.
- */
-export async function getTwitterUser() {
-  try {
-    const { client } = await getAuthenticatedTwitterClient();
-
-    const user = await client.v2.me({
-      'user.fields': ['public_metrics', 'verified', 'profile_image_url'],
-    });
-
-    return {
-      success: true,
-      user: {
-        id: user.data.id,
-        username: user.data.username,
-        name: user.data.name,
-        verified: user.data.verified,
-        profileImageUrl: user.data.profile_image_url,
-        publicMetrics: user.data.public_metrics,
-      },
-    };
-  } catch (error) {
-    console.error('Error getting Twitter user:', error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Failed to get user info',
-    };
-  }
+  clearTokensInCookies();
+  revalidatePath('/dashboard/publisher');
+  return { success: true };
 }

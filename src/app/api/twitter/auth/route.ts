@@ -1,7 +1,6 @@
 // src/app/api/twitter/auth/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAuthLink } from '@/lib/twitter';
-import { cookies } from 'next/headers';
 
 export async function GET(req: NextRequest) {
   const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
@@ -17,16 +16,17 @@ export async function GET(req: NextRequest) {
     // Store codeVerifier and state in cookies to verify them in the callback
     const cookieOptions = {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 60 * 15, // 15 minutes
       sameSite: 'lax' as const,
     };
 
-    cookies().set('twitter_code_verifier', codeVerifier, cookieOptions);
-    cookies().set('twitter_state', state, cookieOptions);
+    const response = NextResponse.redirect(url);
+    response.cookies.set('twitter_code_verifier', codeVerifier, cookieOptions);
+    response.cookies.set('twitter_state', state, cookieOptions);
 
-    return NextResponse.redirect(url);
+    return response;
 
   } catch (error) {
     console.error("Error in Twitter auth route:", error);

@@ -9,21 +9,23 @@ import { Twitter, CheckCircle, AlertCircle, Loader2, Power } from 'lucide-react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { checkTwitterConnection, disconnectTwitter } from '@/app/actions/twitter-actions';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 interface TwitterUser {
   id: string;
   username: string;
   name: string;
+  profile_image_url?: string;
 }
 
 interface ConnectionStatus {
   isConnected: boolean;
-  user?: TwitterUser;
+  user?: TwitterUser | null;
   error?: string;
 }
 
 export default function TwitterIntegration({ dict }: { dict: any }) {
-  const [status, setStatus] = useState<ConnectionStatus | null>(null);
+  const [status, setStatus] = useState<ConnectionStatus>({ isConnected: false, user: null });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -57,31 +59,24 @@ export default function TwitterIntegration({ dict }: { dict: any }) {
   }, [toast, dict]);
 
   useEffect(() => {
-    const success = searchParams.get('success');
-    const error = searchParams.get('error');
-    const details = searchParams.get('details');
+    const success = searchParams.get('twitter_success');
+    const error = searchParams.get('twitter_error');
 
-    if (success === 'twitter_connected') {
+    if (success) {
       toast({
-        title: dict.connectSuccess,
-        description: dict.connectSuccessDesc,
+        title: success === 'connected' ? dict.connectSuccess : dict.disconnectSuccess,
       });
-      // After a successful connection, re-check the status to update the UI
       checkConnection();
-      // Clean up the URL
       router.replace(pathname);
     } else if (error) {
-      const errorMessage = decodeURIComponent(details || dict.connectFailDesc);
       toast({
         variant: 'destructive',
         title: dict.connectFail,
-        description: errorMessage,
+        description: `Error: ${error}. Please try connecting again.`,
       });
-       // Clean up the URL
       router.replace(pathname);
     }
     
-    // Initial check on component mount
     checkConnection();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -89,31 +84,16 @@ export default function TwitterIntegration({ dict }: { dict: any }) {
 
   const handleConnect = () => {
     setLoading(true);
-    // This is the CORRECT way: The client simply navigates to the API route.
-    // The server handles the entire OAuth2 flow.
     window.location.href = '/api/twitter/auth';
   };
 
   const handleDisconnect = async () => {
     setLoading(true);
-    try {
-        const result = await disconnectTwitter();
-        if (result.success) {
-            toast({ title: dict.disconnectSuccess });
-            setStatus({ isConnected: false });
-        } else {
-            throw new Error(result.error);
-        }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : dict.disconnectFailDesc;
-      toast({
-          variant: "destructive",
-          title: dict.disconnectFail,
-          description: errorMessage,
-      });
-    } finally {
-        setLoading(false);
-    }
+    await disconnectTwitter();
+    // Re-check connection after server action is done
+    await checkConnection();
+    toast({ title: dict.disconnectSuccess });
+    setLoading(false);
   };
 
   return (
@@ -133,14 +113,19 @@ export default function TwitterIntegration({ dict }: { dict: any }) {
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span className="ml-2 text-muted-foreground">{dict.checkingStatus}</span>
             </div>
-        ) : status?.isConnected ? (
+        ) : status?.isConnected && status.user ? (
           <div className="space-y-3">
-            <Alert variant="default" className="border-green-500/50 bg-green-500/10">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <AlertDescription className="text-foreground">
-                {dict.connectedAs.replace('{user}', status.user?.username || 'user')}
-              </AlertDescription>
-            </Alert>
+             <Alert variant="default" className="border-green-500/50 bg-green-500/10">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <AlertDescription className="text-foreground">
+                    <div className="flex items-center gap-2">
+                        {status.user.profile_image_url && (
+                            <Image src={status.user.profile_image_url} alt={status.user.name} width={24} height={24} className="rounded-full" />
+                        )}
+                        <span>{dict.connectedAs.replace('{user}', status.user.username)}</span>
+                    </div>
+                </AlertDescription>
+             </Alert>
             <Button 
                 onClick={handleDisconnect} 
                 variant="destructive"

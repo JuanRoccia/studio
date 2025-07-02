@@ -3,7 +3,7 @@
 // It is designed to be imported by API Route Handlers and Server Actions.
 
 import { cookies } from 'next/headers';
-import type { TwitterApi } from 'twitter-api-v2';
+import type { TwitterApi as TwitterApiType } from 'twitter-api-v2';
 
 interface TwitterTokens {
   accessToken: string;
@@ -21,7 +21,6 @@ async function getTwitterApi() {
 
 /**
  * Generates the OAuth 2.0 Authorization URL for Twitter.
- * This is the first step in the authentication flow.
  */
 export async function generateAuthLink() {
   const TwitterApi = await getTwitterApi();
@@ -47,11 +46,8 @@ export async function generateAuthLink() {
 
 /**
  * Exchanges the authorization code for an access token and refresh token.
- * This is the second step, handled by the callback route.
- * @param code The authorization code from Twitter's callback.
- * @param codeVerifier The original code verifier stored in a cookie.
  */
-export async function loginWithPKCE(code: string, codeVerifier: string) {
+export async function exchangeCodeForTokens(code: string, codeVerifier: string) {
   const TwitterApi = await getTwitterApi();
   const clientId = process.env.TWITTER_CLIENT_ID;
   const clientSecret = process.env.TWITTER_CLIENT_SECRET;
@@ -73,12 +69,10 @@ export async function loginWithPKCE(code: string, codeVerifier: string) {
   return { accessToken, refreshToken };
 }
 
-
 /**
  * Retrieves the stored access and refresh tokens from cookies.
- * Returns null if no access token is found.
  */
-export async function getTokens(): Promise<TwitterTokens | null> {
+export function getTokensFromCookies(): TwitterTokens | null {
   const cookieStore = cookies();
   const accessToken = cookieStore.get('twitter_access_token')?.value;
   const refreshToken = cookieStore.get('twitter_refresh_token')?.value;
@@ -90,13 +84,41 @@ export async function getTokens(): Promise<TwitterTokens | null> {
   return { accessToken, refreshToken };
 }
 
+
+/**
+ * Deletes the Twitter authentication cookies.
+ */
+export function clearTokensInCookies() {
+  const cookieStore = cookies();
+  cookieStore.delete('twitter_access_token');
+  cookieStore.delete('twitter_refresh_token');
+}
+
+/**
+ * Saves Twitter tokens to httpOnly cookies.
+ */
+export function saveTokensToCookies(tokens: TwitterTokens) {
+    const cookieStore = cookies();
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 90, // 90 days
+        sameSite: 'lax' as const,
+    };
+    cookieStore.set('twitter_access_token', tokens.accessToken, cookieOptions);
+    if (tokens.refreshToken) {
+        cookieStore.set('twitter_refresh_token', tokens.refreshToken, cookieOptions);
+    }
+}
+
+
 /**
  * Creates an authenticated Twitter API client.
  * It will automatically attempt to refresh the token if it's expired.
- * Throws an error if authentication fails.
  */
-export async function getAuthenticatedTwitterClient(): Promise<{ client: TwitterApi }> {
-    const existingTokens = await getTokens();
+export async function getAuthenticatedTwitterClient(): Promise<{ client: TwitterApiType }> {
+    const existingTokens = getTokensFromCookies();
     if (!existingTokens?.accessToken) {
         throw new Error('User is not authenticated with Twitter.');
     }
@@ -107,18 +129,11 @@ export async function getAuthenticatedTwitterClient(): Promise<{ client: Twitter
     const client = new TwitterApi(accessToken);
 
     try {
-        // Make a simple request to check if the token is valid
         await client.v2.me({ 'user.fields': ['id'] });
         return { client };
     } catch (error: any) {
-        // If the token is expired (401) and we have a refresh token, try to refresh it
         if (error?.code !== 401 || !refreshToken) {
-            // If it's not a 401 error, or if there's no refresh token, we can't recover.
-            if (error?.code === 401) {
-                console.log("Token invalid and no refresh token available, clearing tokens.");
-                await clearTokens();
-            }
-            console.error('Twitter API error or invalid token:', error);
+            if (error?.code === 401) await clearTokensInCookies();
             throw new Error('Your Twitter session is invalid. Please disconnect and reconnect.');
         }
 
@@ -131,36 +146,13 @@ export async function getAuthenticatedTwitterClient(): Promise<{ client: Twitter
             const appClient = new TwitterApi({ clientId, clientSecret });
             const { client: refreshedClient, accessToken: newAccessToken, refreshToken: newRefreshToken } = await appClient.refreshOAuth2Token(refreshToken);
 
-            // Securely set the new tokens in cookies
-            const cookieOptions = {
-                httpOnly: true,
-                secure: true,
-                path: '/',
-                maxAge: 60 * 60 * 24 * 90, // 90 days
-                sameSite: 'lax' as const,
-            };
-
-            cookies().set('twitter_access_token', newAccessToken, cookieOptions);
-            if (newRefreshToken) {
-                cookies().set('twitter_refresh_token', newRefreshToken, cookieOptions);
-            }
+            saveTokensToCookies({ accessToken: newAccessToken, refreshToken: newRefreshToken });
             
             console.log('Twitter token refreshed and cookies updated.');
             return { client: refreshedClient };
         } catch (refreshError: any) {
-            console.error('Could not refresh Twitter token:', refreshError);
-            // If refresh fails, clear the stale tokens
-            await clearTokens();
+            await clearTokensInCookies();
             throw new Error('Your Twitter session has expired. Please disconnect and reconnect.');
         }
     }
-}
-
-/**
- * Deletes the Twitter authentication cookies.
- */
-export async function clearTokens() {
-  const cookieStore = cookies();
-  cookieStore.delete('twitter_access_token');
-  cookieStore.delete('twitter_refresh_token');
 }

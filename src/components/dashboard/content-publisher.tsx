@@ -20,7 +20,7 @@ import { narrativeStages } from '@/ai/narrative-stages';
 import { Input } from '../ui/input';
 import { refineContent } from '@/ai/flows/refine-content';
 import { generateImage } from '@/ai/flows/generate-image';
-import { checkTwitterConnection, disconnectTwitter, publishToTwitter } from '@/app/actions/twitter-actions';
+import { checkTwitterConnection, disconnectTwitter } from '@/app/actions/twitter-actions';
 
 interface TwitterUser {
   id: string;
@@ -231,46 +231,44 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   };
 
   const handlePublish = async () => {
-    if (!content.trim()) {
-      setPublishResult({
-        success: false,
-        error: 'Please enter some content to publish'
-      });
-      return;
-    }
-
-    if (!connectionStatus?.isConnected) {
-      setPublishResult({
-        success: false,
-        error: 'Please connect your Twitter account first'
-      });
-      return;
-    }
-
+    if (!content.trim() || !connectionStatus?.isConnected) return;
+  
+    setIsPublishing(true);
+    setPublishResult(null);
+    toast({ title: sharedDict.toasts.publishing_title, description: sharedDict.toasts.publishing_description });
+  
     try {
-      setIsPublishing(true);
-      setPublishResult(null);
-      toast({ title: sharedDict.toasts.publishing_title, description: sharedDict.toasts.publishing_description });
-      
-      const tweetsToPublish = threadParts.length > 1 ? threadParts : [content];
-      const result = await publishToTwitter(tweetsToPublish);
-      setPublishResult(result);
-      
-      if (result.success) {
-        setContent('');
-        setThreadParts([]);
-        setStageIndex(0);
-        toast({ title: sharedDict.toasts.publish_success_title, description: result.message });
-      } else {
-        toast({ variant: 'destructive', title: sharedDict.toasts.publish_error_title, description: result.error });
-      }
-    } catch (error) {
-      console.error('Error publishing:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to publish content';
-      setPublishResult({
-        success: false,
-        error: errorMessage
+      const tweetsToPublish = threadParts.length > 1 
+        ? threadParts.map((t) => t.replace(/^\d+\/\s*/, '').trim())
+        : [content];
+  
+      const response = await fetch('/api/twitter/publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tweets: tweetsToPublish }),
       });
+  
+      const result = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to publish tweet(s).');
+      }
+  
+      const successMessage = tweetsToPublish.length > 1 ? 'Thread published successfully!' : 'Tweet published successfully!';
+      setPublishResult({
+        success: true,
+        message: successMessage,
+        tweetUrl: `https://twitter.com/${result.username}/status/${result.tweetId}`,
+      });
+      toast({ title: sharedDict.toasts.publish_success_title, description: successMessage });
+      setContent('');
+      setThreadParts([]);
+      setStageIndex(0);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      setPublishResult({ success: false, error: errorMessage });
       toast({ variant: 'destructive', title: sharedDict.toasts.publish_error_title, description: errorMessage });
     } finally {
       setIsPublishing(false);
@@ -279,7 +277,6 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
 
   const handleConnectTwitter = () => {
     setIsCheckingConnection(true);
-    // This is the CORRECT way: The client simply navigates to the API route.
     window.location.href = '/api/twitter/auth';
   };
 
@@ -290,7 +287,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
         await checkConnection();
         toast({ title: dict.publish.disconnect_success_title });
     } else {
-        toast({ variant: 'destructive', title: "Disconnection Failed", description: result.error});
+        toast({ variant: 'destructive', title: "Disconnection Failed", description: "Could not disconnect account."});
     }
     setIsCheckingConnection(false);
   };
