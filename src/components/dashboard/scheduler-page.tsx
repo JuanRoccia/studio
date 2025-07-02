@@ -71,7 +71,7 @@ export function SchedulerPage({ lang, dict, sharedDict }: { lang: string, dict: 
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>();
   const [tasks, setTasks] = useState<{ [key: string]: Task[] }>({
     [format(new Date(), 'yyyy-MM-dd')]: initialTasks,
   });
@@ -83,6 +83,11 @@ export function SchedulerPage({ lang, dict, sharedDict }: { lang: string, dict: 
       style: 'Nietzschean',
       topic: 'The recent surge in UFO sightings'
   });
+
+  useEffect(() => {
+    // This ensures new Date() is only called on the client, after hydration.
+    setDate(new Date());
+  }, []);
 
   const selectedDayTasks = date ? tasks[format(date, 'yyyy-MM-dd')] || [] : [];
   
