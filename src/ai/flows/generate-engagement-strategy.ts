@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateEngagementStrategyInputSchema = z.object({
+const GenerateEngagementStrategyInputSchema = z.object({
   taskType: z
     .enum(['Comment', 'Direct Message'])
     .describe('The type of engagement task.'),
@@ -25,7 +25,7 @@ export type GenerateEngagementStrategyInput = z.infer<
   typeof GenerateEngagementStrategyInputSchema
 >;
 
-export const GenerateEngagementStrategyOutputSchema = z.object({
+const GenerateEngagementStrategyOutputSchema = z.object({
   strategy: z
     .string()
     .describe(
