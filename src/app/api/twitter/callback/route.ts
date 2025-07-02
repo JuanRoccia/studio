@@ -1,7 +1,7 @@
 // src/app/api/twitter/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getTwitterApiClass } from '@/lib/twitter-client';
+import { loginWithPKCE } from '@/lib/twitter';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,22 +16,7 @@ export async function GET(req: NextRequest) {
       return new Response('Invalid request: state mismatch or missing parameters.', { status: 400 });
     }
 
-    const TwitterApi = await getTwitterApiClass();
-    const clientId = process.env.TWITTER_CLIENT_ID;
-    const clientSecret = process.env.TWITTER_CLIENT_SECRET;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-
-    if (!clientId || !clientSecret || !baseUrl) {
-      throw new Error('Missing Twitter environment variables. Please check your .env file.');
-    }
-
-    const client = new TwitterApi({ clientId, clientSecret });
-    
-    const { accessToken, refreshToken } = await client.loginWithPKCE({
-      code,
-      codeVerifier: storedCodeVerifier,
-      redirectUri: `${baseUrl}/api/twitter/callback`,
-    });
+    const { accessToken, refreshToken } = await loginWithPKCE(code, storedCodeVerifier);
 
     const oneDay = 24 * 60 * 60 * 1000;
     

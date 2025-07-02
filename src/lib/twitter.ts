@@ -1,12 +1,9 @@
-// src/lib/twitter.ts
-import { cookies } from 'next/headers';
-import { getTwitterApiClass } from './twitter-client';
+'use server';
 
-/**
- * Generates an authentication URL for the Twitter OAuth 2.0 PKCE flow.
- */
+import { cookies } from 'next/headers';
+
 export async function generateAuthLink() {
-  const TwitterApi = await getTwitterApiClass();
+  const { TwitterApi } = await import('twitter-api-v2');
   const clientId = process.env.TWITTER_CLIENT_ID;
   const clientSecret = process.env.TWITTER_CLIENT_SECRET;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
@@ -15,10 +12,7 @@ export async function generateAuthLink() {
     throw new Error('Missing Twitter environment variables. Please check your .env file.');
   }
 
-  const client = new TwitterApi({
-    clientId,
-    clientSecret,
-  });
+  const client = new TwitterApi({ clientId, clientSecret });
   
   const CALLBACK_URL = `${baseUrl}/api/twitter/callback`;
   const { url, codeVerifier, state } = client.generateOAuth2AuthLink(CALLBACK_URL, {
@@ -28,9 +22,29 @@ export async function generateAuthLink() {
   return { authUrl: url, codeVerifier, state };
 }
 
-/**
- * Retrieves the user's tokens from cookies.
- */
+export async function loginWithPKCE(code: string, codeVerifier: string) {
+    const { TwitterApi } = await import('twitter-api-v2');
+    const clientId = process.env.TWITTER_CLIENT_ID;
+    const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+    if (!clientId || !clientSecret || !baseUrl) {
+        throw new Error('Missing Twitter environment variables. Please check your .env file.');
+    }
+
+    const client = new TwitterApi({ clientId, clientSecret });
+    const CALLBACK_URL = `${baseUrl}/api/twitter/callback`;
+
+    const { accessToken, refreshToken } = await client.loginWithPKCE({
+        code,
+        codeVerifier,
+        redirectUri: CALLBACK_URL,
+    });
+
+    return { accessToken, refreshToken };
+}
+
+
 export function getTokens(): { accessToken?: string; refreshToken?: string; } {
   const cookieStore = cookies();
   const accessToken = cookieStore.get('twitter_access_token')?.value;
@@ -39,15 +53,8 @@ export function getTokens(): { accessToken?: string; refreshToken?: string; } {
   return { accessToken, refreshToken };
 }
 
-
-/**
- * Creates an authenticated Twitter client for a user, refreshing tokens if necessary.
- * @param accessToken The user's current access token.
- * @param refreshToken The user's refresh token.
- * @returns An object containing the authenticated client and refreshed tokens if any.
- */
 export async function getAuthenticatedTwitterClient(accessToken?: string, refreshToken?: string) {
-    const TwitterApi = await getTwitterApiClass();
+    const { TwitterApi } = await import('twitter-api-v2');
 
     if (!accessToken || !refreshToken) {
         throw new Error('No access token or refresh token provided.');
@@ -67,12 +74,10 @@ export async function getAuthenticatedTwitterClient(accessToken?: string, refres
     });
 
     try {
-        // A cheap request to verify token validity. If it fails with 401, we'll try to refresh.
         await client.v2.me({ 'user.fields': ['id'] });
         return { client, refreshed: undefined };
     } catch (error: any) {
         if (error?.code !== 401) {
-             // Not an authentication error, re-throw it.
             console.error('An unexpected error occurred with the Twitter API:', error);
             throw error;
         }
@@ -90,8 +95,6 @@ export async function getAuthenticatedTwitterClient(accessToken?: string, refres
             return { client: refreshedClient, refreshed };
         } catch (refreshError: any) {
             console.error('Could not refresh Twitter token:', refreshError);
-            // If refresh fails, it's likely the refresh token is also invalid.
-            // The user needs to re-authenticate.
             throw new Error('Twitter authentication has expired. Please disconnect and reconnect your account.');
         }
     }
