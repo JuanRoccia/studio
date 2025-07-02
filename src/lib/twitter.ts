@@ -1,5 +1,4 @@
 // src/lib/twitter.ts
-import type { TwitterApiTokens } from 'twitter-api-v2';
 import { cookies } from 'next/headers';
 
 /**
@@ -31,7 +30,7 @@ export async function getTwitterClient() {
 /**
  * Retrieves the user's tokens from cookies.
  */
-export function getTokens(): Partial<TwitterApiTokens> {
+export function getTokens(): Partial<import('twitter-api-v2').TwitterApiTokens> {
   const cookieStore = cookies();
   const accessToken = cookieStore.get('twitter_access_token')?.value;
   const refreshToken = cookieStore.get('twitter_refresh_token')?.value;
