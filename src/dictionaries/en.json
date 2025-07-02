@@ -178,7 +178,11 @@
             "title": "Publish",
             "buttonText": "Publish Now",
             "scheduleButton": "Schedule Post",
-            "description": "Publishes to linked Twitter account."
+            "description": "Connect your X/Twitter account to publish.",
+            "connect_button": "Connect Twitter",
+            "connected_status": "Connected to Twitter",
+            "disconnect_button": "Disconnect",
+            "disconnect_success_title": "Twitter Disconnected"
         }
     },
     "schedulerPage": {
@@ -254,6 +258,7 @@
             "publishing_description": "Connecting to the social matrix...",
             "publish_success_title": "Content Published!",
             "publish_success_description": "Your message has been broadcast.",
+            "publish_error_title": "Publishing Failed",
             "refining_content_title": "Refining content...",
             "refining_content_description": "The AI is polishing your text.",
             "refine_success": "Content refined successfully!",

@@ -178,7 +178,11 @@
             "title": "Publicar",
             "buttonText": "Publicar Ahora",
             "scheduleButton": "Programar Posteo",
-            "description": "Publica en la cuenta de Twitter vinculada."
+            "description": "Conectá tu cuenta de X/Twitter para publicar.",
+            "connect_button": "Conectar Twitter",
+            "connected_status": "Conectado a Twitter",
+            "disconnect_button": "Desconectar",
+            "disconnect_success_title": "Twitter Desconectado"
         }
     },
     "schedulerPage": {
@@ -254,6 +258,7 @@
             "publishing_description": "Conectando con la matriz social...",
             "publish_success_title": "¡Contenido Publicado!",
             "publish_success_description": "Tu mensaje ha sido transmitido.",
+            "publish_error_title": "Falló la Publicación",
             "refining_content_title": "Refinando contenido...",
             "refining_content_description": "La IA está puliendo tu texto.",
             "refine_success": "¡Contenido refinado con éxito!",

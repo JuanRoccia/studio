@@ -1,13 +1,13 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Send, Wand2, Image as ImageIcon, Search, Repeat, Upload, CalendarClock } from 'lucide-react';
+import { Loader2, Send, Wand2, Image as ImageIcon, Search, Repeat, Upload, CalendarClock, Power, Twitter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
@@ -19,6 +19,7 @@ import { narrativeStages } from '@/ai/narrative-stages';
 import { Input } from '../ui/input';
 import { refineContent } from '@/ai/flows/refine-content';
 import { generateImage } from '@/ai/flows/generate-image';
+import { checkTwitterConnection, disconnectTwitter, publishToTwitter } from '@/app/actions/twitter-actions';
 
 export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dict: any, sharedDict: any }) {
   const searchParams = useSearchParams();
@@ -42,6 +43,18 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   const [trends, setTrends] = useState<AnalyzeTrendsOutput | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isTwitterConnected, setIsTwitterConnected] = useState(false);
+  const [isConnectionPending, startConnectionCheck] = useTransition();
+
+
+  useEffect(() => {
+    startConnectionCheck(async () => {
+      const { isConnected } = await checkTwitterConnection();
+      setIsTwitterConnected(isConnected);
+    });
+  }, []);
+
 
   const isThreadComplete = stageIndex >= narrativeStages.length -1;
 
@@ -68,9 +81,10 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
             language: lang as 'en' | 'es-AR',
         };
         const result = await expandToThread(input);
-        const newThreadParts = [...threadParts, `\n\n${stageIndex + 1}/ ${result.nextTweet}`];
+        const newTweet = `${stageIndex + 1}/ ${result.nextTweet}`;
+        const newThreadParts = [...threadParts, newTweet];
         setThreadParts(newThreadParts);
-        setContent(newThreadParts.join(''));
+        setContent(newThreadParts.map(p => p.replace(/^\d+\/\s*/, '').trim()).join('\n\n'));
         setStageIndex(prev => prev + 1);
         toast({ title: sharedDict.toasts.expand_success});
     } catch(error) {
@@ -158,10 +172,23 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   const handlePublish = async () => {
     setIsPublishing(true);
     toast({ title: sharedDict.toasts.publishing_title, description: sharedDict.toasts.publishing_description });
-    await new Promise(res => setTimeout(res, 2000));
-    toast({ title: sharedDict.toasts.publish_success_title, description: sharedDict.toasts.publish_success_description });
+    
+    const tweetsToPublish = threadParts.length > 1 ? threadParts : [content];
+    const result = await publishToTwitter({ tweets: tweetsToPublish });
+
+    if (result.success) {
+      toast({ title: sharedDict.toasts.publish_success_title, description: result.message });
+    } else {
+      toast({ variant: 'destructive', title: sharedDict.toasts.publish_error_title, description: result.message });
+    }
     setIsPublishing(false);
   }
+
+  const handleDisconnect = async () => {
+    await disconnectTwitter();
+    setIsTwitterConnected(false);
+    toast({ title: dict.publish.disconnect_success_title });
+  };
 
   const handleRefineContent = async () => {
     if (!refineRequest || !content) {
@@ -182,6 +209,9 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
             language: lang as 'en' | 'es-AR',
         });
         setContent(result.refinedContent);
+        // If content was refined, reset threadParts to reflect the new single content
+        setThreadParts([result.refinedContent]);
+        setStageIndex(0);
         setRefineRequest(''); // Clear input after successful refinement
         toast({ title: sharedDict.toasts.refine_success });
     } catch (error) {
@@ -210,7 +240,12 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
           <CardContent className="space-y-4">
             <Textarea 
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                setContent(e.target.value);
+                // If user edits content manually, reset the thread tracking
+                setThreadParts([e.target.value]);
+                setStageIndex(0);
+              }}
               rows={12}
               placeholder={dict.contentPlaceholder}
               className="text-base"
@@ -317,13 +352,43 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
         <Card className="shadow-lg shadow-primary/10 bg-primary/5">
             <CardHeader>
                 <CardTitle className="font-headline text-xl">{dict.publish.title}</CardTitle>
+                 {isConnectionPending ? (
+                    <Skeleton className="h-5 w-32 mt-1" />
+                 ) : isTwitterConnected ? (
+                    <CardDescription className="flex items-center gap-2 text-green-400">
+                        <Twitter className="w-4 h-4" />
+                        {dict.publish.connected_status}
+                    </CardDescription>
+                 ) : (
+                    <CardDescription>{dict.publish.description}</CardDescription>
+                 )}
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
-                <Button onClick={handlePublish} disabled={isPublishing} className="w-full" size="lg">
-                    {isPublishing ? <Loader2 className="animate-spin" /> : <Send />}
-                    {dict.publish.buttonText}
-                </Button>
-                <Button asChild variant="outline" size="lg">
+                 {isConnectionPending ? (
+                    <Skeleton className="h-10 w-full" />
+                ) : isTwitterConnected ? (
+                  <>
+                    <Button onClick={handlePublish} disabled={isPublishing || !content} className="w-full" size="lg">
+                        {isPublishing ? <Loader2 className="animate-spin" /> : <Send />}
+                        {dict.publish.buttonText}
+                    </Button>
+                     <Button onClick={handleDisconnect} variant="destructive" size="sm">
+                        <Power className="w-4 h-4" />
+                        {dict.publish.disconnect_button}
+                    </Button>
+                  </>
+                 ) : (
+                    <Button asChild size="lg">
+                      <Link href="/api/twitter/auth">
+                        <Twitter />
+                        {dict.publish.connect_button}
+                      </Link>
+                    </Button>
+                )}
+                
+                <Separator className='my-2' />
+
+                <Button asChild variant="outline" size="lg" disabled={!isTwitterConnected}>
                     <Link href={{
                       pathname: `/${lang}/dashboard/scheduler`,
                       query: { 
@@ -336,7 +401,6 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
                         {dict.publish.scheduleButton}
                     </Link>
                 </Button>
-                <p className="text-xs text-center text-muted-foreground mt-2">{dict.publish.description}</p>
             </CardContent>
         </Card>
       </div>
