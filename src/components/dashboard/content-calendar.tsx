@@ -10,6 +10,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarDays } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ContentCalendar({ dict }: { dict: any }) {
   const [date, setDate] = useState<Date | undefined>();
@@ -30,12 +31,19 @@ export function ContentCalendar({ dict }: { dict: any }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex justify-center">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          className="rounded-md border"
-        />
+        {date ? (
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              today={date}
+              className="rounded-md border"
+            />
+        ) : (
+            <div className="rounded-md border">
+              <Skeleton className="w-[280px] h-[321px]" />
+            </div>
+        )}
       </CardContent>
     </Card>
   );

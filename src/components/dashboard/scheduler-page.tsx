@@ -149,12 +149,19 @@ export function SchedulerPage({ lang, dict, sharedDict }: { lang: string, dict: 
             <CardDescription>{dict.description}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col lg:flex-row gap-8">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="rounded-md border self-start"
-            />
+            {date ? (
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                today={date}
+                className="rounded-md border self-start"
+              />
+            ) : (
+              <div className="rounded-md border self-start">
+                <Skeleton className="w-[280px] h-[321px]" />
+              </div>
+            )}
             <div className="flex-1">
               <h3 className="text-lg font-headline mb-4">
                 {dict.tasks.header.replace('{date}', date ? format(date, 'PPP') : '')}
