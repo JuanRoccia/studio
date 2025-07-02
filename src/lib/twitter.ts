@@ -43,7 +43,7 @@ export function getTokens(): Partial<TwitterApiTokens> {
  * @param refreshToken The user's refresh token.
  * @returns An object containing the authenticated client and refreshed tokens if any.
  */
-export async function getTwitterClient(accessToken?: string, refreshToken?: string) {
+export async function getAuthenticatedTwitterClient(accessToken?: string, refreshToken?: string) {
     if (!accessToken || !refreshToken) {
         throw new Error('No access token or refresh token provided.');
     }
