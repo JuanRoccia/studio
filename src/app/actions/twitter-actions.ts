@@ -25,9 +25,7 @@ export async function checkTwitterConnection() {
   } catch (error) {
     console.error('Error checking Twitter connection status:', error);
     // Propagate a user-friendly error message
-    const errorMessage = error instanceof Error && (error.message.includes('session is invalid') || error.message.includes('session has expired'))
-      ? error.message
-      : 'Failed to verify connection. Please try reconnecting.';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to verify connection. Please try reconnecting.';
     
     return { 
       isConnected: false, 

@@ -70,8 +70,8 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
   const isThreadComplete = stageIndex >= narrativeStages.length - 1;
 
   const checkConnection = useCallback(async () => {
+    setIsCheckingConnection(true);
     try {
-      setIsCheckingConnection(true);
       const result = await checkTwitterConnection();
       setConnectionStatus(result);
     } catch (error) {
@@ -96,7 +96,9 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
         title: dict.publish.connection_success_title || "Connection Successful!",
         description: dict.publish.connection_success_desc || "Your Twitter account has been connected.",
       });
+      // After a successful connection, re-check the status to update the UI
       checkConnection();
+      // Clean up the URL by removing search params
       router.replace(`/${lang}/dashboard/publisher`);
     } else if (error) {
       toast({
@@ -104,6 +106,7 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
         title: dict.publish.connection_failed_title || "Connection Failed",
         description: decodeURIComponent(details || "An unknown error occurred. Please try again."),
       });
+      // Clean up the URL by removing search params
       router.replace(`/${lang}/dashboard/publisher`);
     }
   }, [searchParams, lang, router, toast, checkConnection, dict]);
@@ -274,14 +277,20 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
 
   const handleConnectTwitter = () => {
     setIsCheckingConnection(true);
+    // Redirect to the API route that starts the auth flow
     window.location.href = '/api/twitter/auth';
   };
 
   const handleDisconnect = async () => {
     setIsCheckingConnection(true);
-    await disconnectTwitter();
-    await checkConnection();
-    toast({ title: dict.publish.disconnect_success_title });
+    const result = await disconnectTwitter();
+    if (result.success) {
+        await checkConnection();
+        toast({ title: dict.publish.disconnect_success_title });
+    } else {
+        toast({ variant: 'destructive', title: "Disconnection Failed", description: result.error});
+    }
+    setIsCheckingConnection(false);
   };
 
   const handleRefineContent = async () => {
@@ -321,70 +330,6 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-lg shadow-primary/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Twitter className="h-5 w-5" />
-            {dict.publish.connection_title || "Twitter Connection"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isCheckingConnection ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="ml-2">Checking Twitter connection...</span>
-            </div>
-          ) : connectionStatus?.isConnected ? (
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <span className="text-sm">Connected as</span>
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  @{connectionStatus.user?.username}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button 
-                  onClick={checkConnection} 
-                  variant="outline" 
-                  size="sm"
-                  disabled={isCheckingConnection}
-                >
-                  <RefreshCw className="mr-2 h-3 w-3" />
-                  Refresh
-                </Button>
-                <Button onClick={handleDisconnect} variant="destructive" size="sm" disabled={isCheckingConnection}>
-                  <Power className="mr-2 w-4 h-4" />
-                  {dict.publish.disconnect_button}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-red-500">
-                <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">Not connected to Twitter</span>
-              </div>
-              
-              {connectionStatus?.error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {connectionStatus.error}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <Button onClick={handleConnectTwitter} className="w-full" disabled={isCheckingConnection}>
-                <Twitter className="mr-2 h-4 w-4" />
-                {dict.publish.connect_button}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 flex flex-col gap-8">
           <Card className="shadow-lg shadow-primary/10">
@@ -557,23 +502,45 @@ export function ContentPublisher({ lang, dict, sharedDict }: { lang: string, dic
           </Card>
           <Card className="shadow-lg shadow-primary/10 bg-primary/5">
               <CardHeader>
-                  <CardTitle className="font-headline text-xl">{dict.publish.title}</CardTitle>
+                  <CardTitle className="font-headline text-xl flex items-center gap-2">
+                    <Twitter className="h-5 w-5 text-primary" />
+                    {dict.publish.connection_title}
+                  </CardTitle>
                    {isCheckingConnection ? (
-                      <Skeleton className="h-5 w-32 mt-1" />
+                       <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="ml-2 text-sm">{dict.publish.checking_status}</span>
+                        </div>
                    ) : connectionStatus?.isConnected ? (
                       <CardDescription className="flex items-center gap-2 text-green-400">
-                          <Twitter className="w-4 h-4" />
-                          {dict.publish.connected_status}
+                          <CheckCircle className="w-4 h-4" />
+                          <span>{dict.publish.connected_status_as.replace('{user}', connectionStatus.user?.username || 'user')}</span>
                       </CardDescription>
                    ) : (
-                      <CardDescription>{dict.publish.description}</CardDescription>
+                      <CardDescription className="flex items-center gap-2 text-red-400">
+                        <AlertCircle className="w-4 h-4" />
+                        {dict.publish.not_connected_status}
+                      </CardDescription>
                    )}
               </CardHeader>
               <CardContent className="flex flex-col gap-2">
-                  <Button onClick={handlePublish} disabled={!connectionStatus?.isConnected || isPublishing || !content} className="w-full" size="lg">
-                      {isPublishing ? <Loader2 className="animate-spin" /> : <Send />}
-                      {dict.publish.buttonText}
-                  </Button>
+                  {connectionStatus?.isConnected ? (
+                    <Button onClick={handleDisconnect} variant="destructive" disabled={isCheckingConnection}>
+                        <Power className="mr-2 w-4 h-4" />
+                        {dict.publish.disconnect_button}
+                    </Button>
+                  ) : (
+                    <Button onClick={handleConnectTwitter} disabled={isCheckingConnection}>
+                        <Twitter className="mr-2 h-4 w-4" />
+                        {dict.publish.connect_button}
+                    </Button>
+                  )}
+                  {connectionStatus?.error && !connectionStatus.isConnected &&(
+                      <Alert variant="destructive" className="text-xs">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>{connectionStatus.error}</AlertDescription>
+                      </Alert>
+                  )}
                   
                   <Separator className='my-2' />
 

@@ -193,6 +193,12 @@
         },
         "publish": {
             "connection_title": "Twitter Connection",
+            "connection_success_title": "Connection Successful!",
+            "connection_success_desc": "Your Twitter account has been connected.",
+            "connection_failed_title": "Connection Failed",
+            "checking_status": "Checking connection...",
+            "connected_status_as": "Connected as @{user}",
+            "not_connected_status": "Not connected to Twitter",
             "title": "Publish",
             "buttonText": "Publish Now",
             "scheduleButton": "Schedule Post",
