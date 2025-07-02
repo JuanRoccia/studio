@@ -45,7 +45,7 @@ export async function loginWithPKCE(code: string, codeVerifier: string) {
 }
 
 
-export function getTokens(): { accessToken?: string; refreshToken?: string; } {
+export async function getTokens(): Promise<{ accessToken?: string; refreshToken?: string; }> {
   const cookieStore = cookies();
   const accessToken = cookieStore.get('twitter_access_token')?.value;
   const refreshToken = cookieStore.get('twitter_refresh_token')?.value;

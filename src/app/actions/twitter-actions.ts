@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import { getAuthenticatedTwitterClient, getTokens } from '@/lib/twitter';
 
 export async function checkTwitterConnection() {
-  const tokens = getTokens();
+  const tokens = await getTokens();
   return { isConnected: !!tokens.accessToken };
 }
 
@@ -21,7 +21,7 @@ function cleanTweetText(text: string): string {
 }
 
 export async function publishToTwitter({ tweets }: { tweets: string[] }) {
-    const tokens = getTokens();
+    const tokens = await getTokens();
     if (!tokens.accessToken) {
         throw new Error('User not authenticated with Twitter.');
     }
