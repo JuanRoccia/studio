@@ -1,3 +1,5 @@
+ENTORNO DE FIREBASE STUDIO
+
 // src/app/api/twitter/auth/route.ts
 import { NextResponse } from 'next/server';
 import { generateAuthLink } from '@/lib/twitter';
@@ -1013,6 +1015,31 @@ export function clearTwitterTokens() {
   cookieStore.delete('twitter_state');
   cookieStore.delete('twitter_code_verifier');
 }
+// next.config.ts
+import type {NextConfig} from 'next';
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
+};
+
+export default nextConfig;
+
 To fix the issue:
 
 Use the first artifact (the one with regular imports) - this should resolve the initialization error.
@@ -1028,56 +1055,7 @@ The root cause of your error was the async dynamic import pattern causing a race
 GET https://9000-firebase-studio-1751265422046.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev/en/dashboard 500 (Internal Server Error)Understand this error
 react-dom.development.js:29895 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
 node-stack-frames.ts:40 Uncaught ReferenceError: Cannot access 'TwitterApiReadWrite' before initialization
-    at Module.default (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7127:21)
-    at [project]/node_modules/twitter-api-v2/dist/esm/client/index.js [app-rsc] (ecmascript) <locals> (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:6769:196)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
-    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
-    at [project]/node_modules/twitter-api-v2/dist/esm/client/readonly.js [app-rsc] (ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:6828:212)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
-    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
-    at [project]/node_modules/twitter-api-v2/dist/esm/client/readwrite.js [app-rsc] (ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7131:199)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
-    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
-    at [project]/node_modules/twitter-api-v2/dist/esm/client/index.js [app-rsc] (ecmascript) <module evaluation> (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7159:200)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
-    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
-    at [project]/node_modules/twitter-api-v2/dist/esm/index.js [app-rsc] (ecmascript) <module evaluation> (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7195:224)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
-    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
-    at [project]/src/lib/twitter.ts [app-rsc] (ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js:351:214)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
-    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
-    at [project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js:532:147)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
-    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
-    at [project]/.next-internal/server/app/[lang]/dashboard/page/actions.js { ACTIONS_MODULE0 => "[project]/src/ai/flows/generate-conspiracy-themes.ts [app-rsc] (ecmascript)", ACTIONS_MODULE1 => "[project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript) <module evaluation> (file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js:639:169)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
-    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
-    at [project]/.next-internal/server/app/[lang]/dashboard/page/actions.js { ACTIONS_MODULE0 => "[project]/src/ai/flows/generate-conspiracy-themes.ts [app-rsc] (ecmascript)", ACTIONS_MODULE1 => "[project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js:666:561)
-    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
-    at instantiateRuntimeModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:661:12)
-    at Object.getOrInstantiateRuntimeModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:677:12)
-    at Object.<anonymous> (file:///home/user/studio/.next/server/app/[lang]/dashboard/page.js:32:9)
-    at Module._compile (node:internal/modules/cjs/loader:1529:14)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
-    at Module.load (node:internal/modules/cjs/loader:1275:32)
-    at Module._load (node:internal/modules/cjs/loader:1096:12)
-    at Module.require (node:internal/modules/cjs/loader:1298:19)
-    at mod.require (file:///home/user/studio/node_modules/next/dist/server/require-hook.js:65:28)
-    at require (node:internal/modules/helpers:182:18)
-    at requirePage (file:///home/user/studio/node_modules/next/dist/server/require.js:103:84)
-    at loadComponentsImpl (file:///home/user/studio/node_modules/next/dist/server/load-components.js:132:57)
-    at async DevServer.findPageComponentsImpl (file:///home/user/studio/node_modules/next/dist/server/next-server.js:820:36)
-    at async DevServer.findPageComponents (file:///home/user/studio/node_modules/next/dist/server/dev/next-dev-server.js:628:16)
-    at async DevServer.renderPageComponent (file:///home/user/studio/node_modules/next/dist/server/base-server.js:2394:24)
+    at Module.default (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7127:21) bla bla bla
 getServerError @ node-stack-frames.ts:40
 (anonymous) @ index.tsx:945
 setTimeout
@@ -1129,3 +1107,299 @@ file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf.
 file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js (666:561)
 Object.<anonymous>
 .next/server/app/[lang]/dashboard/page.js (32:9)
+
+
+# SOLUCION
+// src/lib/twitter.ts
+import { cookies } from 'next/headers';
+
+interface TwitterTokens {
+  accessToken: string;
+  refreshToken?: string;
+}
+
+// Cache for TwitterApi class to avoid repeated dynamic imports
+let TwitterApiClass: any = null;
+
+// Function to get TwitterApi class with caching
+async function getTwitterApiClass() {
+  if (!TwitterApiClass) {
+    const { TwitterApi } = await import('twitter-api-v2');
+    TwitterApiClass = TwitterApi;
+  }
+  return TwitterApiClass;
+}
+
+// Función helper para crear una instancia de TwitterApi
+async function createTwitterClient(config: { clientId: string; clientSecret: string } | string) {
+  const TwitterApi = await getTwitterApiClass();
+  return new TwitterApi(config);
+}
+
+// Función para generar el enlace de autorización
+export async function generateAuthLink() {
+  console.log('[Twitter Lib] generateAuthLink: Generating authorization link...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  console.log('Environment check:', {
+    clientId: !!clientId,
+    clientSecret: !!clientSecret,
+    baseUrl: !!baseUrl
+  });
+
+  if (!clientId || !clientSecret || !baseUrl) {
+    console.error('[Twitter Lib] generateAuthLink: Missing required environment variables.');
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+
+  try {
+    const client = await createTwitterClient({ clientId, clientSecret });
+    const callbackUrl = `${baseUrl}/api/twitter/callback`;
+    const scopes = ['tweet.read', 'tweet.write', 'users.read', 'offline.access'];
+    
+    console.log(`[Twitter Lib] generateAuthLink: Using callback URL: ${callbackUrl}`);
+    console.log(`[Twitter Lib] generateAuthLink: Requesting scopes: ${scopes.join(', ')}`);
+    
+    const { url, codeVerifier, state } = client.generateOAuth2AuthLink(callbackUrl, {
+      scope: scopes,
+    });
+
+    console.log(`[Twitter Lib] generateAuthLink: Successfully generated link. State: ${state}`);
+    return { url, codeVerifier, state };
+  } catch (error) {
+    console.error('[Twitter Lib] generateAuthLink: Error:', error);
+    throw error;
+  }
+}
+
+// Función para intercambiar el código por tokens
+export async function exchangeCodeForTokens(code: string, codeVerifier: string) {
+  console.log('[Twitter Lib] exchangeCodeForTokens: Starting token exchange...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  if (!clientId || !clientSecret || !baseUrl) {
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+  
+  try {
+    const client = await createTwitterClient({ clientId, clientSecret });
+    const callbackUrl = `${baseUrl}/api/twitter/callback`;
+
+    console.log(`[Twitter Lib] exchangeCodeForTokens: Using callback URL for exchange: ${callbackUrl}`);
+
+    const { accessToken, refreshToken, expiresIn, scope } = await client.loginWithOAuth2({
+      code,
+      codeVerifier,
+      redirectUri: callbackUrl,
+    });
+    
+    console.log('[Twitter Lib] exchangeCodeForTokens: Token exchange successful.');
+    console.log('[Twitter Lib] exchangeCodeForTokens: Received scopes:', scope);
+
+    if (!scope.includes('tweet.write')) {
+        console.warn('[Twitter Lib] exchangeCodeForTokens: WARNING - "tweet.write" scope is missing. Publishing will fail.');
+    }
+
+    return { accessToken, refreshToken, expiresIn, scope };
+  } catch (error) {
+    console.error('[Twitter Lib] exchangeCodeForTokens: Error:', error);
+    throw error;
+  }
+}
+
+// Función para obtener información del usuario
+export async function getTwitterUser(accessToken: string) {
+  console.log('[Twitter Lib] getTwitterUser: Fetching user data...');
+  
+  try {
+    const client = await createTwitterClient(accessToken);
+    const user = await client.v2.me({ 'user.fields': ['profile_image_url'] });
+    
+    console.log(`[Twitter Lib] getTwitterUser: Successfully fetched user: ${user.data.username}`);
+    return user;
+  } catch (error) {
+    console.error('[Twitter Lib] getTwitterUser: Error:', error);
+    throw error;
+  }
+}
+
+// Función para refrescar tokens
+export async function refreshTwitterTokens(refreshToken: string) {
+  console.log('[Twitter Lib] refreshTwitterTokens: Attempting to refresh tokens...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+
+  try {
+    const client = await createTwitterClient({ clientId, clientSecret });
+    const { accessToken, refreshToken: newRefreshToken } = await client.refreshOAuth2Token(refreshToken);
+    
+    console.log('[Twitter Lib] refreshTwitterTokens: Successfully refreshed tokens.');
+    return { accessToken, refreshToken: newRefreshToken };
+  } catch (error) {
+    console.error('[Twitter Lib] refreshTwitterTokens: Error:', error);
+    throw error;
+  }
+}
+
+// Función para obtener cliente autenticado
+export async function getAuthenticatedTwitterClient() {
+  console.log('[Twitter Lib] getAuthenticatedTwitterClient: Getting authenticated client...');
+  
+  const tokens = getTwitterTokensFromCookies();
+  if (!tokens?.accessToken) {
+    throw new Error('No Twitter access token found. Please connect your Twitter account first.');
+  }
+
+  try {
+    const client = await createTwitterClient(tokens.accessToken);
+    return { client, tokens };
+  } catch (error) {
+    console.error('[Twitter Lib] getAuthenticatedTwitterClient: Error:', error);
+    throw error;
+  }
+}
+
+// Función para publicar un tweet
+export async function publishTweet(text: string, accessToken: string) {
+  console.log(`[Twitter Lib] publishTweet: Attempting to publish tweet with length ${text.length}`);
+  
+  try {
+    const client = await createTwitterClient(accessToken);
+    const result = await client.v2.tweet(text);
+    
+    console.log('[Twitter Lib] publishTweet: Successfully published tweet.');
+    return result;
+  } catch (error) {
+    console.error('[Twitter Lib] publishTweet: Error:', error);
+    throw error;
+  }
+}
+
+// Función para obtener tokens de las cookies
+export function getTwitterTokensFromCookies(): TwitterTokens | null {
+  try {
+    const cookieStore = cookies();
+    const accessToken = cookieStore.get('twitter_access_token')?.value;
+    const refreshToken = cookieStore.get('twitter_refresh_token')?.value;
+
+    if (!accessToken) {
+      console.log('[Twitter Lib] getTwitterTokensFromCookies: No access token found.');
+      return null;
+    }
+    
+    console.log('[Twitter Lib] getTwitterTokensFromCookies: Found tokens in cookies.');
+    return { accessToken, refreshToken };
+  } catch (error) {
+    console.error('[Twitter Lib] getTwitterTokensFromCookies: Error:', error);
+    return null;
+  }
+}
+
+// Función para guardar tokens en cookies
+export function saveTwitterTokensToCookies(tokens: TwitterTokens) {
+  console.log('[Twitter Lib] saveTwitterTokensToCookies: Saving tokens to cookies...');
+  
+  try {
+    const cookieStore = cookies();
+    
+    cookieStore.set('twitter_access_token', tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 días
+    });
+
+    if (tokens.refreshToken) {
+      cookieStore.set('twitter_refresh_token', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 30, // 30 días
+      });
+    }
+    console.log('[Twitter Lib] saveTwitterTokensToCookies: Tokens saved.');
+  } catch (error) {
+    console.error('[Twitter Lib] saveTwitterTokensToCookies: Error:', error);
+    throw error;
+  }
+}
+
+// Función para limpiar tokens
+export function clearTwitterTokens() {
+  console.log('[Twitter Lib] clearTwitterTokens: Clearing all twitter-related cookies.');
+  
+  try {
+    const cookieStore = cookies();
+    cookieStore.delete('twitter_access_token');
+    cookieStore.delete('twitter_refresh_token');
+    cookieStore.delete('twitter_state');
+    cookieStore.delete('twitter_code_verifier');
+  } catch (error) {
+    console.error('[Twitter Lib] clearTwitterTokens: Error:', error);
+    throw error;
+  }
+}
+
+The key changes I made to fix the circular dependency issue are:
+
+Dynamic Import with Caching: I created a getTwitterApiClass() function that dynamically imports the TwitterApi class only when needed and caches it to avoid repeated imports.
+Async createTwitterClient: Made the helper function async and used the cached dynamic import.
+Better Error Handling: Added try-catch blocks around all functions to handle potential errors gracefully.
+Removed Direct Import: Removed the direct import of TwitterApi from the top of the file, which was causing the circular dependency.
+
+Additional steps to ensure this works:
+
+Clear Next.js cache (very important):
+bashrm -rf .next
+npm run dev
+
+Alternative: Use a different version of twitter-api-v2 if the issue persists:
+bashnpm uninstall twitter-api-v2
+npm install twitter-api-v2@1.15.0
+
+If you're still having issues, you can also try adding this to your next.config.js:
+javascript/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: ['twitter-api-v2'],
+  },
+}
+
+module.exports = nextConfig
+
+
+The main issue was that twitter-api-v2 has internal circular dependencies that cause problems when imported directly in Next.js 13+ App Router. The dynamic import approach with caching solves this by loading the library only when needed and avoiding the initialization race condition.
+After implementing these changes, restart your development server and the Twitter integration should work properly without the initialization error.
+
+me da un internal server error despues de esto:
+studio-8971307221:~/studio{master}$ rm -rf .next
+studio-8971307221:~/studio{master}$ npm run dev
+> nextn@0.1.0 dev
+> next dev --turbopack -p 9002
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::9002
+    at  (Error: listen EADDRINUSE: address already in use :::9002)
+    at new Promise () {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 9002
+}
+studio-8971307221:~/studio{master}$
+
+nuestra url es https://9000-firebase-studio-1751265422046.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev/
+La version que si andaba de twitter: npm install twitter-api-v2@1.17.1
