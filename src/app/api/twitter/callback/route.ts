@@ -58,10 +58,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Intercambiar código por tokens
-    const { accessToken, refreshToken } = await exchangeCodeForTokens(code, codeVerifier);
+    const tokenResult = await exchangeCodeForTokens(code, codeVerifier);
 
     // Guardar tokens en cookies
-    saveTwitterTokensToCookies({ accessToken, refreshToken });
+    saveTwitterTokensToCookies(tokenResult);
 
     // Limpiar cookies temporales y redirigir
     console.log('[Twitter Callback Route] Successfully exchanged tokens. Redirecting to publisher with success message.');

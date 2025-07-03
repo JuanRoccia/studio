@@ -34,7 +34,7 @@ export async function checkTwitterConnection() {
       }
     };
   } catch (error: any) {
-    console.error('[Twitter Action] checkTwitterConnection: Error verifying user.', error);
+    console.error(`[Twitter Action] checkTwitterConnection: Error verifying user. Code: ${error.code}, Message: ${error.message}`);
     
     // Si el token expiró (código 401) y tenemos un refresh token, intentamos refrescarlo.
     if (error.code === 401 && tokens.refreshToken) {

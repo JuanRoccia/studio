@@ -44,7 +44,6 @@ export async function generateAuthLink() {
 
 // Función para intercambiar el código por tokens
 export async function exchangeCodeForTokens(code: string, codeVerifier: string) {
-  console.log('[Twitter Lib] exchangeCodeForTokens: Attempting to exchange code for tokens...');
   const { TwitterApi } = await import('twitter-api-v2');
   
   const client = new TwitterApi({
@@ -55,20 +54,20 @@ export async function exchangeCodeForTokens(code: string, codeVerifier: string) 
   const callbackUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitter/callback`;
   console.log(`[Twitter Lib] exchangeCodeForTokens: Using callback URL for exchange: ${callbackUrl}`);
 
-  const tokenResult = await client.loginWithOAuth2({
+  const { accessToken, refreshToken, expiresIn, scope } = await client.loginWithOAuth2({
     code,
     codeVerifier,
     redirectUri: callbackUrl,
   });
   
-  console.log('[Twitter Lib] exchangeCodeForTokens: Received token result from Twitter:', {
-      accessToken: tokenResult.accessToken ? '*** (received)' : 'null',
-      refreshToken: tokenResult.refreshToken ? '*** (received)' : 'null',
-      expiresIn: tokenResult.expiresIn,
-      scope: tokenResult.scope,
-  });
+  console.log('[Twitter Lib] exchangeCodeForTokens: Token exchange successful.');
+  console.log('[Twitter Lib] exchangeCodeForTokens: Received scopes:', scope);
 
-  return tokenResult;
+  if (!scope.includes('tweet.write')) {
+      console.warn('[Twitter Lib] exchangeCodeForTokens: WARNING - "tweet.write" scope is missing. Publishing will fail.');
+  }
+
+  return { accessToken, refreshToken, expiresIn, scope };
 }
 
 // Función para publicar un tweet
