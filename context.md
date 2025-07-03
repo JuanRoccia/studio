@@ -1,187 +1,465 @@
-// src/app/api/twitter/callback/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { exchangeCodeForTokens, saveTokensToCookies } from '@/lib/twitter';
+// src/app/api/twitter/auth/route.ts
+import { NextResponse } from 'next/server';
+import { generateAuthLink } from '@/lib/twitter';
 
-export async function GET(req: NextRequest) {
-  const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  
-  if (!baseUrl) {
-    return new NextResponse('Base URL is not configured.', { status: 500 });
-  }
-
-  const redirectUrl = new URL(`/${lang}/dashboard/publisher`, baseUrl);
-
+export async function GET() {
+  console.log('[Twitter Auth Route] Received request to start authentication.');
   try {
-    const { searchParams } = new URL(req.url);
-    const state = searchParams.get('state');
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
+    // Verificar variables de entorno primero
+    const clientId = process.env.TWITTER_CLIENT_ID;
+    const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-    // Handle user denial of authorization
-    if (error) {
-      console.error('Twitter authorization was denied by the user:', error);
-      redirectUrl.searchParams.set('error', 'twitter_auth_denied');
-      redirectUrl.searchParams.set('details', `Twitter reported an error: ${error}`);
-      return NextResponse.redirect(redirectUrl);
-    }
-    
-    const storedState = req.cookies.get('twitter_state')?.value;
-    const storedCodeVerifier = req.cookies.get('twitter_code_verifier')?.value;
-
-    if (!state || !code || !storedState || !storedCodeVerifier || state !== storedState) {
-      redirectUrl.searchParams.set('error', 'invalid_request');
-      redirectUrl.searchParams.set('details', 'State mismatch or missing parameters. Please try connecting again.');
-      return NextResponse.redirect(redirectUrl);
+    if (!clientId || !clientSecret || !baseUrl) {
+      console.error('[Twitter Auth Route] Missing environment variables:', {
+        clientId: !!clientId,
+        clientSecret: !!clientSecret,
+        baseUrl: !!baseUrl
+      });
+      return NextResponse.json(
+        { 
+          error: 'Server configuration error', 
+          details: 'Missing required environment variables. Please check your .env file.' 
+        },
+        { status: 500 }
+      );
     }
 
-    const { accessToken, refreshToken } = await exchangeCodeForTokens(code, storedCodeVerifier);
-    
-    saveTokensToCookies({ accessToken, refreshToken });
+    const { url, codeVerifier, state } = await generateAuthLink();
 
-    // Clean up temporary cookies
-    const response = NextResponse.redirect(redirectUrl);
-    response.cookies.delete('twitter_state');
-    response.cookies.delete('twitter_code_verifier');
+    console.log('[Twitter Auth Route] Generated auth link. Redirecting user to Twitter.');
+    console.log(`[Twitter Auth Route] State: ${state}`);
+    console.log(`[Twitter Auth Route] Code Verifier: ${codeVerifier ? '*** (generated)' : 'null'}`);
+
+    const response = NextResponse.redirect(url);
     
-    // Redirect with success message
-    redirectUrl.searchParams.set('success', 'twitter_connected');
-    return NextResponse.redirect(redirectUrl);
-  
+    // Guardar datos temporales en cookies
+    response.cookies.set('twitter_state', state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 10, // 10 minutos
+    });
+
+    response.cookies.set('twitter_code_verifier', codeVerifier, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 10, // 10 minutos
+    });
+    
+    console.log('[Twitter Auth Route] State and verifier cookies set.');
+    return response;
   } catch (error) {
-    console.error("Twitter callback error:", error);
-    const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred during callback.';
-    redirectUrl.searchParams.set('error', 'callback_failed');
-    redirectUrl.searchParams.set('details', errorMessage);
-    return NextResponse.redirect(redirectUrl);
+    console.error('[Twitter Auth Route] FATAL: Error generating Twitter auth link:', error);
+    
+    let errorMessage = 'An unknown error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      console.error('[Twitter Auth Route] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to generate auth link', details: errorMessage },
+      { status: 500 }
+    );
   }
 }
+// src/app/api/twitter/callback/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { exchangeCodeForTokens, saveTwitterTokensToCookies } from '@/lib/twitter';
 
+export async function GET(request: NextRequest) {
+  console.log('[Twitter Callback Route] Received callback from Twitter.');
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
+  const state = searchParams.get('state');
+  const error = searchParams.get('error');
+  const errorDescription = searchParams.get('error_description');
 
+  const redirectBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const lang = request.cookies.get('NEXT_LOCALE')?.value || 'en';
+  const finalRedirectUrl = new URL(`/${lang}/dashboard/publisher`, redirectBaseUrl);
+
+  console.log('[Twitter Callback Route] Received query params:', { code, state, error, errorDescription });
+
+  // Verificar si hay error de Twitter
+  if (error) {
+    console.error(`[Twitter Callback Route] Twitter returned an error: ${error} - ${errorDescription}`);
+    finalRedirectUrl.searchParams.set('error', 'twitter_auth_denied');
+    finalRedirectUrl.searchParams.set('details', `Twitter reported an error: ${error_description || error}`);
+    return NextResponse.redirect(finalRedirectUrl);
+  }
+
+  // Verificar parámetros requeridos
+  if (!code || !state) {
+    console.error('[Twitter Callback Route] Missing required parameters (code or state).');
+    finalRedirectUrl.searchParams.set('error', 'invalid_request');
+    finalRedirectUrl.searchParams.set('details', 'Missing code or state from Twitter callback.');
+    return NextResponse.redirect(finalRedirectUrl);
+  }
+
+  try {
+    // Obtener datos de las cookies
+    const storedState = request.cookies.get('twitter_state')?.value;
+    const codeVerifier = request.cookies.get('twitter_code_verifier')?.value;
+    
+    console.log('[Twitter Callback Route] Retrieved from cookies:', {
+        storedState: storedState,
+        codeVerifier: codeVerifier ? '*** (found)' : 'null'
+    });
+
+    // Verificar state para prevenir CSRF
+    if (!storedState || storedState !== state) {
+      console.error('[Twitter Callback Route] State mismatch. Potential CSRF attack.');
+      finalRedirectUrl.searchParams.set('error', 'invalid_request');
+      finalRedirectUrl.searchParams.set('details', 'State mismatch. Please try connecting again.');
+      return NextResponse.redirect(finalRedirectUrl);
+    }
+
+    if (!codeVerifier) {
+      console.error('[Twitter Callback Route] Missing code verifier cookie.');
+      finalRedirectUrl.searchParams.set('error', 'invalid_request');
+      finalRedirectUrl.searchParams.set('details', 'Code verifier is missing. Please try connecting again.');
+      return NextResponse.redirect(finalRedirectUrl);
+    }
+
+    // Intercambiar código por tokens
+    const tokenResult = await exchangeCodeForTokens(code, codeVerifier);
+
+    // Guardar tokens en cookies
+    saveTwitterTokensToCookies(tokenResult);
+
+    // Limpiar cookies temporales y redirigir
+    console.log('[Twitter Callback Route] Successfully exchanged tokens. Redirecting to publisher with success message.');
+    finalRedirectUrl.searchParams.set('success', 'twitter_connected');
+    const response = NextResponse.redirect(finalRedirectUrl);
+    
+    response.cookies.delete('twitter_state');
+    response.cookies.delete('twitter_code_verifier');
+
+    return response;
+  } catch (error) {
+    console.error('[Twitter Callback Route] FATAL: Error exchanging code for tokens:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during callback.';
+    finalRedirectUrl.searchParams.set('error', 'callback_failed');
+    finalRedirectUrl.searchParams.set('details', errorMessage);
+    return NextResponse.redirect(finalRedirectUrl);
+  }
+}
+// src/app/api/twitter/publish/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedTwitterClient } from '@/lib/twitter';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { tweets } = await request.json();
+
+    if (!tweets || !Array.isArray(tweets) || tweets.length === 0 || !tweets[0].trim()) {
+      return NextResponse.json(
+        { error: 'Tweet content cannot be empty.' },
+        { status: 400 }
+      );
+    }
+
+    const { client } = await getAuthenticatedTwitterClient();
+    
+    let result;
+    const cleanedTweets = tweets.map((t) =>
+      t.replace(/^\d+\/\s*/, '').trim()
+    );
+
+    if (cleanedTweets.length > 1) {
+      result = await client.v2.tweetThread(cleanedTweets);
+    } else {
+      const content = cleanedTweets[0];
+      if (content.length > 280) {
+        return NextResponse.json(
+            { error: 'Tweet content exceeds 280 characters limit.' },
+            { status: 400 }
+        );
+      }
+      result = await client.v2.tweet(content);
+    }
+    
+    const tweetId = Array.isArray(result) ? result[0].data.id : result.data.id;
+    const { data: user } = await client.v2.me();
+
+    return NextResponse.json({ success: true, tweetId, username: user.username });
+
+  } catch (error: any) {
+    console.error('Error publishing to Twitter:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to publish tweet.';
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+// src/lib/twitter.ts
+import { cookies } from 'next/headers';
+
+interface TwitterTokens {
+  accessToken: string;
+  refreshToken?: string;
+}
+
+// Función helper para crear una instancia de TwitterApi
+async function createTwitterClient(config: { clientId: string; clientSecret: string } | string) {
+  const { TwitterApi } = await import('twitter-api-v2');
+  return new TwitterApi(config);
+}
+
+// Función para generar el enlace de autorización
+export async function generateAuthLink() {
+  console.log('[Twitter Lib] generateAuthLink: Generating authorization link...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  if (!clientId || !clientSecret || !baseUrl) {
+    console.error('[Twitter Lib] generateAuthLink: Missing required environment variables.');
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+
+  const client = await createTwitterClient({ clientId, clientSecret });
+  const callbackUrl = `${baseUrl}/api/twitter/callback`;
+  const scopes = ['tweet.read', 'tweet.write', 'users.read', 'offline.access'];
+  
+  console.log(`[Twitter Lib] generateAuthLink: Using callback URL: ${callbackUrl}`);
+  console.log(`[Twitter Lib] generateAuthLink: Requesting scopes: ${scopes.join(', ')}`);
+  
+  const { url, codeVerifier, state } = client.generateOAuth2AuthLink(callbackUrl, {
+    scope: scopes,
+  });
+
+  console.log(`[Twitter Lib] generateAuthLink: Successfully generated link. State: ${state}`);
+  return { url, codeVerifier, state };
+}
+
+// Función para intercambiar el código por tokens
+export async function exchangeCodeForTokens(code: string, codeVerifier: string) {
+  console.log('[Twitter Lib] exchangeCodeForTokens: Starting token exchange...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  if (!clientId || !clientSecret || !baseUrl) {
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+  
+  const client = await createTwitterClient({ clientId, clientSecret });
+  const callbackUrl = `${baseUrl}/api/twitter/callback`;
+
+  console.log(`[Twitter Lib] exchangeCodeForTokens: Using callback URL for exchange: ${callbackUrl}`);
+
+  const { accessToken, refreshToken, expiresIn, scope } = await client.loginWithOAuth2({
+    code,
+    codeVerifier,
+    redirectUri: callbackUrl,
+  });
+  
+  console.log('[Twitter Lib] exchangeCodeForTokens: Token exchange successful.');
+  console.log('[Twitter Lib] exchangeCodeForTokens: Received scopes:', scope);
+
+  if (!scope.includes('tweet.write')) {
+      console.warn('[Twitter Lib] exchangeCodeForTokens: WARNING - "tweet.write" scope is missing. Publishing will fail.');
+  }
+
+  return { accessToken, refreshToken, expiresIn, scope };
+}
+
+// Función para obtener información del usuario
+export async function getTwitterUser(accessToken: string) {
+  console.log('[Twitter Lib] getTwitterUser: Fetching user data...');
+  
+  const client = await createTwitterClient(accessToken);
+  const user = await client.v2.me({ 'user.fields': ['profile_image_url'] });
+  
+  console.log(`[Twitter Lib] getTwitterUser: Successfully fetched user: ${user.data.username}`);
+  return user;
+}
+
+// Función para refrescar tokens
+export async function refreshTwitterTokens(refreshToken: string) {
+  console.log('[Twitter Lib] refreshTwitterTokens: Attempting to refresh tokens...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+
+  const client = await createTwitterClient({ clientId, clientSecret });
+  const { accessToken, refreshToken: newRefreshToken } = await client.refreshOAuth2Token(refreshToken);
+  
+  console.log('[Twitter Lib] refreshTwitterTokens: Successfully refreshed tokens.');
+  return { accessToken, refreshToken: newRefreshToken };
+}
+
+// Función para obtener cliente autenticado (LA QUE FALTABA)
+export async function getAuthenticatedTwitterClient() {
+  console.log('[Twitter Lib] getAuthenticatedTwitterClient: Getting authenticated client...');
+  
+  const tokens = getTwitterTokensFromCookies();
+  if (!tokens?.accessToken) {
+    throw new Error('No Twitter access token found. Please connect your Twitter account first.');
+  }
+
+  const client = await createTwitterClient(tokens.accessToken);
+  return { client, tokens };
+}
+
+// Función para publicar un tweet
+export async function publishTweet(text: string, accessToken: string) {
+  console.log(`[Twitter Lib] publishTweet: Attempting to publish tweet with length ${text.length}`);
+  
+  const client = await createTwitterClient(accessToken);
+  const result = await client.v2.tweet(text);
+  
+  console.log('[Twitter Lib] publishTweet: Successfully published tweet.');
+  return result;
+}
+
+// Función para obtener tokens de las cookies
+export function getTwitterTokensFromCookies(): TwitterTokens | null {
+  const cookieStore = cookies();
+  const accessToken = cookieStore.get('twitter_access_token')?.value;
+  const refreshToken = cookieStore.get('twitter_refresh_token')?.value;
+
+  if (!accessToken) {
+    console.log('[Twitter Lib] getTwitterTokensFromCookies: No access token found.');
+    return null;
+  }
+  
+  console.log('[Twitter Lib] getTwitterTokensFromCookies: Found tokens in cookies.');
+  return { accessToken, refreshToken };
+}
+
+// Función para guardar tokens en cookies
+export function saveTwitterTokensToCookies(tokens: TwitterTokens) {
+  console.log('[Twitter Lib] saveTwitterTokensToCookies: Saving tokens to cookies...');
+  const cookieStore = cookies();
+  
+  cookieStore.set('twitter_access_token', tokens.accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30, // 30 días
+  });
+
+  if (tokens.refreshToken) {
+    cookieStore.set('twitter_refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 días
+    });
+  }
+  console.log('[Twitter Lib] saveTwitterTokensToCookies: Tokens saved.');
+}
+
+// Función para limpiar tokens
+export function clearTwitterTokens() {
+  console.log('[Twitter Lib] clearTwitterTokens: Clearing all twitter-related cookies.');
+  const cookieStore = cookies();
+  cookieStore.delete('twitter_access_token');
+  cookieStore.delete('twitter_refresh_token');
+  cookieStore.delete('twitter_state');
+  cookieStore.delete('twitter_code_verifier');
+}
 // src/app/actions/twitter-actions.ts
 'use server';
 
 import {
-  getTokensFromCookies,
-  getAuthenticatedTwitterClient,
-  clearTokensInCookies,
+  getTwitterTokensFromCookies,
+  getTwitterUser,
+  clearTwitterTokens,
+  refreshTwitterTokens,
+  saveTwitterTokensToCookies
 } from '@/lib/twitter';
 import { revalidatePath } from 'next/cache';
 
-/**
- * Checks if a user is currently connected to Twitter by validating their tokens.
- */
+// Verificar si el usuario está conectado a Twitter
 export async function checkTwitterConnection() {
-  const tokens = getTokensFromCookies();
+  console.log('[Twitter Action] checkTwitterConnection: Starting connection check.');
+  const tokens = getTwitterTokensFromCookies();
+  
   if (!tokens?.accessToken) {
-    return { isConnected: false };
+    console.log('[Twitter Action] checkTwitterConnection: No access token found. User is not connected.');
+    return { isConnected: false, user: null };
   }
 
   try {
-    const { client } = await getAuthenticatedTwitterClient();
-    const user = await client.v2.me({ 'user.fields': ['profile_image_url'] });
-    return {
-      isConnected: true,
+    console.log('[Twitter Action] checkTwitterConnection: Access token found. Verifying with Twitter API...');
+    const user = await getTwitterUser(tokens.accessToken);
+    console.log(`[Twitter Action] checkTwitterConnection: Verification successful for user @${user.data.username}.`);
+    return { 
+      isConnected: true, 
       user: {
         id: user.data.id,
         username: user.data.username,
         name: user.data.name,
         profile_image_url: user.data.profile_image_url,
-      },
+      }
     };
-  } catch (error) {
-    console.error('Error checking Twitter connection status:', error);
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : 'Failed to verify connection. Please try reconnecting.';
-    return {
-      isConnected: false,
-      error: errorMessage,
-    };
+  } catch (error: any) {
+    console.error(`[Twitter Action] checkTwitterConnection: Error verifying user. Code: ${error.code}, Message: ${error.message}`);
+    
+    // Si el token expiró (código 401) y tenemos un refresh token, intentamos refrescarlo.
+    if (error.code === 401 && tokens.refreshToken) {
+      console.log('[Twitter Action] checkTwitterConnection: Access token seems to be expired. Attempting to refresh...');
+      try {
+        const newTokens = await refreshTwitterTokens(tokens.refreshToken);
+        saveTwitterTokensToCookies(newTokens);
+        console.log('[Twitter Action] checkTwitterConnection: Tokens refreshed successfully. Retrying user verification...');
+        
+        // Reintentar la verificación con el nuevo token
+        const user = await getTwitterUser(newTokens.accessToken);
+        console.log(`[Twitter Action] checkTwitterConnection: Verification successful after refresh for @${user.data.username}.`);
+        return {
+          isConnected: true,
+          user: {
+            id: user.data.id,
+            username: user.data.username,
+            name: user.data.name,
+            profile_image_url: user.data.profile_image_url,
+          }
+        };
+      } catch (refreshError: any) {
+        console.error('[Twitter Action] checkTwitterConnection: Failed to refresh token. Clearing tokens.', refreshError);
+        clearTwitterTokens();
+        return { isConnected: false, user: null, error: 'Your Twitter session has expired. Please reconnect.' };
+      }
+    }
+    
+    // Para otros errores o si no hay refresh token, simplemente marcamos como desconectado.
+    clearTwitterTokens();
+    const errorMessage = error.message || 'Failed to verify connection. Please try reconnecting.';
+    return { isConnected: false, user: null, error: errorMessage };
   }
 }
 
-/**
- * Disconnects the user's Twitter account by clearing authentication cookies.
- */
+// Desconectar de Twitter
 export async function disconnectTwitter() {
-  clearTokensInCookies();
+  console.log('[Twitter Action] disconnectTwitter: Disconnecting user...');
+  clearTwitterTokens();
   revalidatePath('/dashboard/publisher');
+  console.log('[Twitter Action] disconnectTwitter: User disconnected and path revalidated.');
   return { success: true };
 }
-
-
-// src/app/api/twitter/auth/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { generateAuthLink } from '@/lib/twitter';
-
-export async function GET(req: NextRequest) {
-  const lang = req.cookies.get('NEXT_LOCALE')?.value || 'en';
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  if (!baseUrl) {
-    return new NextResponse('Base URL is not configured.', { status: 500 });
-  }
-  const publisherUrl = new URL(`/${lang}/dashboard/publisher`, baseUrl);
-
-  try {
-    const { url, codeVerifier, state } = await generateAuthLink();
-    
-    // Store codeVerifier and state in cookies to verify them in the callback
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 15, // 15 minutes
-      sameSite: 'lax' as const,
-    };
-
-    const response = NextResponse.redirect(url);
-    response.cookies.set('twitter_code_verifier', codeVerifier, cookieOptions);
-    response.cookies.set('twitter_state', state, cookieOptions);
-
-    return response;
-
-  } catch (error) {
-    console.error("Error in Twitter auth route:", error);
-    const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
-    
-    publisherUrl.searchParams.set('error', 'twitter_auth_failed');
-    publisherUrl.searchParams.set('details', errorMessage);
-    
-    return NextResponse.redirect(publisherUrl);
-  }
-}
-
-
-.env
-
-TWITTER_CLIENT_ID=SHhVSDdRdmtTTTJ1dHZRY203Y2M6MTpjaQ
-TWITTER_CLIENT_SECRET=OLs0eLxNK4Yb0BgGzbzgJwOl5NEBLl0pdcpcdgnzAqzXE5R0e_
-NEXT_PUBLIC_BASE_URL=https://9000-firebase-studio-1751265422046.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev
-GOOGLE_API_KEY=AIzaSyAhLDDqqp6oadMru3oFBS-3iU7iwG6FDYE
-
-
-1940217473241858048IVeritatesApp details
-
- Edit
-
-Name
-
-1940217473241858048IVeritatesApp id
-
-31160850App permissions
-
-Read and write
-
-Read and Post Posts and profile informationType of App
-
- 
-
-(required)Web App, Automated App or Bot
-
-Confidential clientCallback URI / Redirect URLhttps://9000-firebase-studio-1751265422046.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev/api/twitter/callbackWebsite URL (required)https://9000-firebase-studio-1751265422046.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev
-
 // src/components/dashboard/TwitterIntegration.tsx
 'use client';
 
@@ -339,32 +617,62 @@ export default function TwitterIntegration({ dict }: { dict: any }) {
   );
 }
 
-// src/lib/twitter.ts
-// This is a PURE server-side library. It should NOT have 'use server'.
-// It is designed to be imported by API Route Handlers and Server Actions.
+package.json(twitter version)
+"twitter-api-v2": "^1.17.1",
+.env
+TWITTER_CLIENT_ID=SHhVSDdRdmtTTTJ1dHZRY203Y2M6MTpjaQ
+TWITTER_CLIENT_SECRET=OLs0eLxNK4Yb0BgGzbzgJwOl5NEBLl0pdcpcdgnzAqzXE5R0e_
+NEXT_PUBLIC_BASE_URL=https://9000-firebase-studio-1751265422046.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev
+GOOGLE_API_KEY=AIzaSyAhLDDqqp6oadMru3oFBS-3iU7iwG6FDYE
 
+
+# ESTO ARREGLO EL PROBLEMA DE AUTENTICACION:
+// src/lib/twitter.ts
 import { cookies } from 'next/headers';
-import type { TwitterApi as TwitterApiType } from 'twitter-api-v2';
+import { TwitterApi } from 'twitter-api-v2';
 
 interface TwitterTokens {
   accessToken: string;
   refreshToken?: string;
 }
 
-/**
- * Dynamically imports and returns the TwitterApi class.
- * This is a crucial step to avoid Next.js bundling issues.
- */
-async function getTwitterApi() {
-  const { TwitterApi } = await import('twitter-api-v2');
-  return TwitterApi;
+// Función helper para crear una instancia de TwitterApi
+function createTwitterClient(config: { clientId: string; clientSecret: string } | string) {
+  return new TwitterApi(config);
 }
 
-/**
- * Generates the OAuth 2.0 Authorization URL for Twitter.
- */
+// Función para generar el enlace de autorización
 export async function generateAuthLink() {
-  const TwitterApi = await getTwitterApi();
+  console.log('[Twitter Lib] generateAuthLink: Generating authorization link...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  if (!clientId || !clientSecret || !baseUrl) {
+    console.error('[Twitter Lib] generateAuthLink: Missing required environment variables.');
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+
+  const client = createTwitterClient({ clientId, clientSecret });
+  const callbackUrl = `${baseUrl}/api/twitter/callback`;
+  const scopes = ['tweet.read', 'tweet.write', 'users.read', 'offline.access'];
+  
+  console.log(`[Twitter Lib] generateAuthLink: Using callback URL: ${callbackUrl}`);
+  console.log(`[Twitter Lib] generateAuthLink: Requesting scopes: ${scopes.join(', ')}`);
+  
+  const { url, codeVerifier, state } = client.generateOAuth2AuthLink(callbackUrl, {
+    scope: scopes,
+  });
+
+  console.log(`[Twitter Lib] generateAuthLink: Successfully generated link. State: ${state}`);
+  return { url, codeVerifier, state };
+}
+
+// Función para intercambiar el código por tokens
+export async function exchangeCodeForTokens(code: string, codeVerifier: string) {
+  console.log('[Twitter Lib] exchangeCodeForTokens: Starting token exchange...');
+  
   const clientId = process.env.TWITTER_CLIENT_ID;
   const clientSecret = process.env.TWITTER_CLIENT_SECRET;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
@@ -372,136 +680,452 @@ export async function generateAuthLink() {
   if (!clientId || !clientSecret || !baseUrl) {
     throw new Error('Missing required environment variables for Twitter auth.');
   }
-
-  const client = new TwitterApi({ clientId, clientSecret });
-  const callbackUrl = `${baseUrl}/api/twitter/callback`;
-  const { url, codeVerifier, state } = client.generateOAuth2AuthLink(
-    callbackUrl,
-    {
-      scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
-    }
-  );
-
-  return { url, codeVerifier, state };
-}
-
-/**
- * Exchanges the authorization code for an access token and refresh token.
- */
-export async function exchangeCodeForTokens(code: string, codeVerifier: string) {
-  const TwitterApi = await getTwitterApi();
-  const clientId = process.env.TWITTER_CLIENT_ID;
-  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-
-  if (!clientId || !clientSecret || !baseUrl) {
-    throw new Error('Missing required environment variables for Twitter login.');
-  }
-
-  const client = new TwitterApi({ clientId, clientSecret });
+  
+  const client = createTwitterClient({ clientId, clientSecret });
   const callbackUrl = `${baseUrl}/api/twitter/callback`;
 
-  const { accessToken, refreshToken } = await client.loginWithOAuth2({
+  console.log(`[Twitter Lib] exchangeCodeForTokens: Using callback URL for exchange: ${callbackUrl}`);
+
+  const { accessToken, refreshToken, expiresIn, scope } = await client.loginWithOAuth2({
     code,
     codeVerifier,
     redirectUri: callbackUrl,
   });
+  
+  console.log('[Twitter Lib] exchangeCodeForTokens: Token exchange successful.');
+  console.log('[Twitter Lib] exchangeCodeForTokens: Received scopes:', scope);
 
-  return { accessToken, refreshToken };
+  if (!scope.includes('tweet.write')) {
+      console.warn('[Twitter Lib] exchangeCodeForTokens: WARNING - "tweet.write" scope is missing. Publishing will fail.');
+  }
+
+  return { accessToken, refreshToken, expiresIn, scope };
 }
 
-/**
- * Retrieves the stored access and refresh tokens from cookies.
- */
-export function getTokensFromCookies(): TwitterTokens | null {
+// Función para obtener información del usuario
+export async function getTwitterUser(accessToken: string) {
+  console.log('[Twitter Lib] getTwitterUser: Fetching user data...');
+  
+  const client = createTwitterClient(accessToken);
+  const user = await client.v2.me({ 'user.fields': ['profile_image_url'] });
+  
+  console.log(`[Twitter Lib] getTwitterUser: Successfully fetched user: ${user.data.username}`);
+  return user;
+}
+
+// Función para refrescar tokens
+export async function refreshTwitterTokens(refreshToken: string) {
+  console.log('[Twitter Lib] refreshTwitterTokens: Attempting to refresh tokens...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+
+  const client = createTwitterClient({ clientId, clientSecret });
+  const { accessToken, refreshToken: newRefreshToken } = await client.refreshOAuth2Token(refreshToken);
+  
+  console.log('[Twitter Lib] refreshTwitterTokens: Successfully refreshed tokens.');
+  return { accessToken, refreshToken: newRefreshToken };
+}
+
+// Función para obtener cliente autenticado
+export async function getAuthenticatedTwitterClient() {
+  console.log('[Twitter Lib] getAuthenticatedTwitterClient: Getting authenticated client...');
+  
+  const tokens = getTwitterTokensFromCookies();
+  if (!tokens?.accessToken) {
+    throw new Error('No Twitter access token found. Please connect your Twitter account first.');
+  }
+
+  const client = createTwitterClient(tokens.accessToken);
+  return { client, tokens };
+}
+
+// Función para publicar un tweet
+export async function publishTweet(text: string, accessToken: string) {
+  console.log(`[Twitter Lib] publishTweet: Attempting to publish tweet with length ${text.length}`);
+  
+  const client = createTwitterClient(accessToken);
+  const result = await client.v2.tweet(text);
+  
+  console.log('[Twitter Lib] publishTweet: Successfully published tweet.');
+  return result;
+}
+
+// Función para obtener tokens de las cookies
+export function getTwitterTokensFromCookies(): TwitterTokens | null {
   const cookieStore = cookies();
   const accessToken = cookieStore.get('twitter_access_token')?.value;
   const refreshToken = cookieStore.get('twitter_refresh_token')?.value;
 
   if (!accessToken) {
+    console.log('[Twitter Lib] getTwitterTokensFromCookies: No access token found.');
     return null;
   }
-
+  
+  console.log('[Twitter Lib] getTwitterTokensFromCookies: Found tokens in cookies.');
   return { accessToken, refreshToken };
 }
 
+// Función para guardar tokens en cookies
+export function saveTwitterTokensToCookies(tokens: TwitterTokens) {
+  console.log('[Twitter Lib] saveTwitterTokensToCookies: Saving tokens to cookies...');
+  const cookieStore = cookies();
+  
+  cookieStore.set('twitter_access_token', tokens.accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30, // 30 días
+  });
 
-/**
- * Deletes the Twitter authentication cookies.
- */
-export function clearTokensInCookies() {
+  if (tokens.refreshToken) {
+    cookieStore.set('twitter_refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 días
+    });
+  }
+  console.log('[Twitter Lib] saveTwitterTokensToCookies: Tokens saved.');
+}
+
+// Función para limpiar tokens
+export function clearTwitterTokens() {
+  console.log('[Twitter Lib] clearTwitterTokens: Clearing all twitter-related cookies.');
   const cookieStore = cookies();
   cookieStore.delete('twitter_access_token');
   cookieStore.delete('twitter_refresh_token');
+  cookieStore.delete('twitter_state');
+  cookieStore.delete('twitter_code_verifier');
+}
+The main issue was with the dynamic import of twitter-api-v2. I've changed it to use a regular import statement instead of the async dynamic import. Here are the key changes:
+
+Fixed the import: Changed from const { TwitterApi } = await import('twitter-api-v2'); to import { TwitterApi } from 'twitter-api-v2';
+Removed async from helper function: The createTwitterClient function no longer needs to be async since we're not using dynamic imports.
+Updated all function calls: Removed the await keywords when calling createTwitterClient since it's no longer async.
+
+If you still encounter issues, there might be a few other things to check:
+1. Verify your environment variables are correct:
+Make sure your .env file is properly loaded. You can add a console log at the beginning of the generateAuthLink function to verify:
+typescriptconsole.log('Environment check:', {
+  clientId: !!process.env.TWITTER_CLIENT_ID,
+  clientSecret: !!process.env.TWITTER_CLIENT_SECRET,
+  baseUrl: !!process.env.NEXT_PUBLIC_BASE_URL
+});
+2. Check your Twitter App configuration:
+
+Make sure your Twitter app has the correct permissions (Read and Write)
+Verify your callback URL is correctly set in the Twitter Developer Portal: https://your-domain.com/api/twitter/callback
+
+3. Alternative approach with dynamic import (if still needed):
+If you still need to use dynamic imports for some reason, here's how to do it properly:
+// src/lib/twitter.ts - Alternative with dynamic import
+import { cookies } from 'next/headers';
+
+interface TwitterTokens {
+  accessToken: string;
+  refreshToken?: string;
 }
 
-/**
- * Saves Twitter tokens to httpOnly cookies.
- */
-export function saveTokensToCookies(tokens: TwitterTokens) {
-    const cookieStore = cookies();
-    const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 90, // 90 days
-        sameSite: 'lax' as const,
-    };
-    cookieStore.set('twitter_access_token', tokens.accessToken, cookieOptions);
-    if (tokens.refreshToken) {
-        cookieStore.set('twitter_refresh_token', tokens.refreshToken, cookieOptions);
-    }
+// Función helper para crear una instancia de TwitterApi
+async function createTwitterClient(config: { clientId: string; clientSecret: string } | string) {
+  const { TwitterApi } = await import('twitter-api-v2');
+  return new TwitterApi(config);
 }
 
-
-/**
- * Creates an authenticated Twitter API client.
- * It will automatically attempt to refresh the token if it's expired.
- */
-export async function getAuthenticatedTwitterClient(): Promise<{ client: TwitterApiType }> {
-    const existingTokens = getTokensFromCookies();
-    if (!existingTokens?.accessToken) {
-        throw new Error('User is not authenticated with Twitter.');
-    }
+// Función para generar el enlace de autorización
+export async function generateAuthLink() {
+  console.log('[Twitter Lib] generateAuthLink: Generating authorization link...');
   
-    const { accessToken, refreshToken } = existingTokens;
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-    const TwitterApi = await getTwitterApi();
-    const client = new TwitterApi(accessToken);
+  console.log('Environment check:', {
+    clientId: !!clientId,
+    clientSecret: !!clientSecret,
+    baseUrl: !!baseUrl
+  });
 
-    try {
-        await client.v2.me({ 'user.fields': ['id'] });
-        return { client };
-    } catch (error: any) {
-        if (error?.code !== 401 || !refreshToken) {
-            if (error?.code === 401) await clearTokensInCookies();
-            throw new Error('Your Twitter session is invalid. Please disconnect and reconnect.');
-        }
+  if (!clientId || !clientSecret || !baseUrl) {
+    console.error('[Twitter Lib] generateAuthLink: Missing required environment variables.');
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
 
-        console.log('Access token expired, attempting to refresh...');
-        try {
-            const clientId = process.env.TWITTER_CLIENT_ID;
-            const clientSecret = process.env.TWITTER_CLIENT_SECRET;
-            if (!clientId || !clientSecret) throw new Error('Missing Twitter app credentials for refresh.');
-            
-            const appClient = new TwitterApi({ clientId, clientSecret });
-            const { client: refreshedClient, accessToken: newAccessToken, refreshToken: newRefreshToken } = await appClient.refreshOAuth2Token(refreshToken);
+  try {
+    const client = await createTwitterClient({ clientId, clientSecret });
+    const callbackUrl = `${baseUrl}/api/twitter/callback`;
+    const scopes = ['tweet.read', 'tweet.write', 'users.read', 'offline.access'];
+    
+    console.log(`[Twitter Lib] generateAuthLink: Using callback URL: ${callbackUrl}`);
+    console.log(`[Twitter Lib] generateAuthLink: Requesting scopes: ${scopes.join(', ')}`);
+    
+    const { url, codeVerifier, state } = client.generateOAuth2AuthLink(callbackUrl, {
+      scope: scopes,
+    });
 
-            saveTokensToCookies({ accessToken: newAccessToken, refreshToken: newRefreshToken });
-            
-            console.log('Twitter token refreshed and cookies updated.');
-            return { client: refreshedClient };
-        } catch (refreshError: any) {
-            await clearTokensInCookies();
-            throw new Error('Your Twitter session has expired. Please disconnect and reconnect.');
-        }
-    }
+    console.log(`[Twitter Lib] generateAuthLink: Successfully generated link. State: ${state}`);
+    return { url, codeVerifier, state };
+  } catch (error) {
+    console.error('[Twitter Lib] generateAuthLink: Error:', error);
+    throw error;
+  }
 }
 
+// Función para intercambiar el código por tokens
+export async function exchangeCodeForTokens(code: string, codeVerifier: string) {
+  console.log('[Twitter Lib] exchangeCodeForTokens: Starting token exchange...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-Sigue fallando la conexion a twitter
- Server   Error: Route "/[lang]/dashboard/publisher" used `params.lang`. `params` should be awaited before using its properties. 
+  if (!clientId || !clientSecret || !baseUrl) {
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+  
+  const client = await createTwitterClient({ clientId, clientSecret });
+  const callbackUrl = `${baseUrl}/api/twitter/callback`;
 
-Erorro de:
-Cannot acces TwitterApiReadWrite
-Como lo puedo resolver o que otra alternativ puedo usar para conectar twiter a la aplicacion o desarrollar alguna solucion alternativa que me permita realizar los posteos como una especie redireccionamiento web como podria ser usando seleniumo o pasar directamente a la url pasando datos del perfil y rediteccionando espcificamente a la zona del posteo y dejar a mano los textos generados para el post
+  console.log(`[Twitter Lib] exchangeCodeForTokens: Using callback URL for exchange: ${callbackUrl}`);
+
+  const { accessToken, refreshToken, expiresIn, scope } = await client.loginWithOAuth2({
+    code,
+    codeVerifier,
+    redirectUri: callbackUrl,
+  });
+  
+  console.log('[Twitter Lib] exchangeCodeForTokens: Token exchange successful.');
+  console.log('[Twitter Lib] exchangeCodeForTokens: Received scopes:', scope);
+
+  if (!scope.includes('tweet.write')) {
+      console.warn('[Twitter Lib] exchangeCodeForTokens: WARNING - "tweet.write" scope is missing. Publishing will fail.');
+  }
+
+  return { accessToken, refreshToken, expiresIn, scope };
+}
+
+// Función para obtener información del usuario
+export async function getTwitterUser(accessToken: string) {
+  console.log('[Twitter Lib] getTwitterUser: Fetching user data...');
+  
+  const client = await createTwitterClient(accessToken);
+  const user = await client.v2.me({ 'user.fields': ['profile_image_url'] });
+  
+  console.log(`[Twitter Lib] getTwitterUser: Successfully fetched user: ${user.data.username}`);
+  return user;
+}
+
+// Función para refrescar tokens
+export async function refreshTwitterTokens(refreshToken: string) {
+  console.log('[Twitter Lib] refreshTwitterTokens: Attempting to refresh tokens...');
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing required environment variables for Twitter auth.');
+  }
+
+  const client = await createTwitterClient({ clientId, clientSecret });
+  const { accessToken, refreshToken: newRefreshToken } = await client.refreshOAuth2Token(refreshToken);
+  
+  console.log('[Twitter Lib] refreshTwitterTokens: Successfully refreshed tokens.');
+  return { accessToken, refreshToken: newRefreshToken };
+}
+
+// Función para obtener cliente autenticado
+export async function getAuthenticatedTwitterClient() {
+  console.log('[Twitter Lib] getAuthenticatedTwitterClient: Getting authenticated client...');
+  
+  const tokens = getTwitterTokensFromCookies();
+  if (!tokens?.accessToken) {
+    throw new Error('No Twitter access token found. Please connect your Twitter account first.');
+  }
+
+  const client = await createTwitterClient(tokens.accessToken);
+  return { client, tokens };
+}
+
+// Función para publicar un tweet
+export async function publishTweet(text: string, accessToken: string) {
+  console.log(`[Twitter Lib] publishTweet: Attempting to publish tweet with length ${text.length}`);
+  
+  const client = await createTwitterClient(accessToken);
+  const result = await client.v2.tweet(text);
+  
+  console.log('[Twitter Lib] publishTweet: Successfully published tweet.');
+  return result;
+}
+
+// Función para obtener tokens de las cookies
+export function getTwitterTokensFromCookies(): TwitterTokens | null {
+  const cookieStore = cookies();
+  const accessToken = cookieStore.get('twitter_access_token')?.value;
+  const refreshToken = cookieStore.get('twitter_refresh_token')?.value;
+
+  if (!accessToken) {
+    console.log('[Twitter Lib] getTwitterTokensFromCookies: No access token found.');
+    return null;
+  }
+  
+  console.log('[Twitter Lib] getTwitterTokensFromCookies: Found tokens in cookies.');
+  return { accessToken, refreshToken };
+}
+
+// Función para guardar tokens en cookies
+export function saveTwitterTokensToCookies(tokens: TwitterTokens) {
+  console.log('[Twitter Lib] saveTwitterTokensToCookies: Saving tokens to cookies...');
+  const cookieStore = cookies();
+  
+  cookieStore.set('twitter_access_token', tokens.accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30, // 30 días
+  });
+
+  if (tokens.refreshToken) {
+    cookieStore.set('twitter_refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 días
+    });
+  }
+  console.log('[Twitter Lib] saveTwitterTokensToCookies: Tokens saved.');
+}
+
+// Función para limpiar tokens
+export function clearTwitterTokens() {
+  console.log('[Twitter Lib] clearTwitterTokens: Clearing all twitter-related cookies.');
+  const cookieStore = cookies();
+  cookieStore.delete('twitter_access_token');
+  cookieStore.delete('twitter_refresh_token');
+  cookieStore.delete('twitter_state');
+  cookieStore.delete('twitter_code_verifier');
+}
+To fix the issue:
+
+Use the first artifact (the one with regular imports) - this should resolve the initialization error.
+Check your Next.js version compatibility - if you're using Next.js 13+ with App Router, make sure you have the correct version of twitter-api-v2.
+Verify package installation:
+bashnpm uninstall twitter-api-v2
+npm install twitter-api-v2@1.17.1
+
+Restart your development server after making these changes.
+
+The root cause of your error was the async dynamic import pattern causing a race condition with the TwitterApi class initialization. The direct import approach should resolve this issue.
+# SIN EMBARGO LUEGO DE HABERME AUTENTICADO CORRECTAEMNTE AHORA ME DA ESTE ERROR LUEGO HABERSE REINICIADO LA APLICACION
+GET https://9000-firebase-studio-1751265422046.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev/en/dashboard 500 (Internal Server Error)Understand this error
+react-dom.development.js:29895 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+node-stack-frames.ts:40 Uncaught ReferenceError: Cannot access 'TwitterApiReadWrite' before initialization
+    at Module.default (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7127:21)
+    at [project]/node_modules/twitter-api-v2/dist/esm/client/index.js [app-rsc] (ecmascript) <locals> (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:6769:196)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
+    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
+    at [project]/node_modules/twitter-api-v2/dist/esm/client/readonly.js [app-rsc] (ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:6828:212)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
+    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
+    at [project]/node_modules/twitter-api-v2/dist/esm/client/readwrite.js [app-rsc] (ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7131:199)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
+    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
+    at [project]/node_modules/twitter-api-v2/dist/esm/client/index.js [app-rsc] (ecmascript) <module evaluation> (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7159:200)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
+    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
+    at [project]/node_modules/twitter-api-v2/dist/esm/index.js [app-rsc] (ecmascript) <module evaluation> (file:///home/user/studio/.next/server/chunks/ssr/node_modules_twitter-api-v2_dist_esm_b256f8cf._.js:7195:224)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
+    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
+    at [project]/src/lib/twitter.ts [app-rsc] (ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js:351:214)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
+    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
+    at [project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js:532:147)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
+    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
+    at [project]/.next-internal/server/app/[lang]/dashboard/page/actions.js { ACTIONS_MODULE0 => "[project]/src/ai/flows/generate-conspiracy-themes.ts [app-rsc] (ecmascript)", ACTIONS_MODULE1 => "[project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript) <module evaluation> (file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js:639:169)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at getOrInstantiateModuleFromParent (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:653:12)
+    at esmImport (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:132:20)
+    at [project]/.next-internal/server/app/[lang]/dashboard/page/actions.js { ACTIONS_MODULE0 => "[project]/src/ai/flows/generate-conspiracy-themes.ts [app-rsc] (ecmascript)", ACTIONS_MODULE1 => "[project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript) (file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js:666:561)
+    at instantiateModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:594:23)
+    at instantiateRuntimeModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:661:12)
+    at Object.getOrInstantiateRuntimeModule (file:///home/user/studio/.next/server/chunks/ssr/[turbopack]_runtime.js:677:12)
+    at Object.<anonymous> (file:///home/user/studio/.next/server/app/[lang]/dashboard/page.js:32:9)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (file:///home/user/studio/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (file:///home/user/studio/node_modules/next/dist/server/require.js:103:84)
+    at loadComponentsImpl (file:///home/user/studio/node_modules/next/dist/server/load-components.js:132:57)
+    at async DevServer.findPageComponentsImpl (file:///home/user/studio/node_modules/next/dist/server/next-server.js:820:36)
+    at async DevServer.findPageComponents (file:///home/user/studio/node_modules/next/dist/server/dev/next-dev-server.js:628:16)
+    at async DevServer.renderPageComponent (file:///home/user/studio/node_modules/next/dist/server/base-server.js:2394:24)
+getServerError @ node-stack-frames.ts:40
+(anonymous) @ index.tsx:945
+setTimeout
+hydrate @ index.tsx:923
+await in hydrate
+pageBootstrap @ page-bootstrap.ts:23
+(anonymous) @ next-dev-turbopack.ts:49
+Promise.then
+[project]/node_modules/next/dist/client/next-dev-turbopack.js [client] (ecmascript) @ next-dev-turbopack.ts:28
+(anonymous) @ dev-base.ts:201
+runModuleExecutionHooks @ dev-base.ts:261
+instantiateModule @ dev-base.ts:199
+getOrInstantiateRuntimeModule @ dev-base.ts:97
+registerChunk @ runtime-backend-dom.ts:85
+await in registerChunk
+registerChunk @ runtime-base.ts:356
+(anonymous) @ dev-backend-dom.ts:127
+(anonymous) @ dev-backend-dom.ts:127Understand this error
+websocket.ts:32 [HMR] connected
+report-hmr-latency.ts:26 [Fast Refresh] done in NaNms
+websocket.ts:32 [HMR] connected
+report-hmr-latency.ts:26 [Fast Refresh] done in 61233ms
+Runtime Error
+
+
+ReferenceError: Cannot access 'TwitterApiReadWrite' before initialization
+
+src/lib/twitter.ts (3:1) @ [project]/src/lib/twitter.ts [app-rsc] (ecmascript)
+
+
+  1 | // src/lib/twitter.ts
+  2 | import { cookies } from 'next/headers';
+> 3 | import { TwitterApi } from 'twitter-api-v2';
+    | ^
+  4 |
+  5 | interface TwitterTokens {
+  6 |   accessToken: string;
+Call Stack
+50
+
+Show 45 ignore-listed frame(s)
+[project]/src/lib/twitter.ts [app-rsc] (ecmascript)
+src/lib/twitter.ts (3:1)
+[project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript)
+src/app/actions/twitter-actions.ts (4:1)
+[project]/.next-internal/server/app/[lang]/dashboard/page/actions.js { ACTIONS_MODULE0 => "[project]/src/ai/flows/generate-conspiracy-themes.ts [app-rsc] (ecmascript)", ACTIONS_MODULE1 => "[project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript) <module evaluation>
+file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js (639:169)
+[project]/.next-internal/server/app/[lang]/dashboard/page/actions.js { ACTIONS_MODULE0 => "[project]/src/ai/flows/generate-conspiracy-themes.ts [app-rsc] (ecmascript)", ACTIONS_MODULE1 => "[project]/src/app/actions/twitter-actions.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript)
+file:///home/user/studio/.next/server/chunks/ssr/[root-of-the-server]__f43b87cf._.js (666:561)
+Object.<anonymous>
+.next/server/app/[lang]/dashboard/page.js (32:9)

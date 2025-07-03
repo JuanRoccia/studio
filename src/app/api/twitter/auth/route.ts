@@ -5,6 +5,26 @@ import { generateAuthLink } from '@/lib/twitter';
 export async function GET() {
   console.log('[Twitter Auth Route] Received request to start authentication.');
   try {
+    // Verificar variables de entorno primero
+    const clientId = process.env.TWITTER_CLIENT_ID;
+    const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+    if (!clientId || !clientSecret || !baseUrl) {
+      console.error('[Twitter Auth Route] Missing environment variables:', {
+        clientId: !!clientId,
+        clientSecret: !!clientSecret,
+        baseUrl: !!baseUrl
+      });
+      return NextResponse.json(
+        { 
+          error: 'Server configuration error', 
+          details: 'Missing required environment variables. Please check your .env file.' 
+        },
+        { status: 500 }
+      );
+    }
+
     const { url, codeVerifier, state } = await generateAuthLink();
 
     console.log('[Twitter Auth Route] Generated auth link. Redirecting user to Twitter.');
@@ -34,7 +54,17 @@ export async function GET() {
     return response;
   } catch (error) {
     console.error('[Twitter Auth Route] FATAL: Error generating Twitter auth link:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    
+    let errorMessage = 'An unknown error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      console.error('[Twitter Auth Route] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+
     return NextResponse.json(
       { error: 'Failed to generate auth link', details: errorMessage },
       { status: 500 }
